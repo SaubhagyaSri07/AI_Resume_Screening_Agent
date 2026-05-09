@@ -26,6 +26,22 @@ from app.pipeline import (
     ScreeningPipeline
 )
 
+from app.agents.profile_agent import (
+    ProfileAgent
+)
+
+# =====================================================
+# CREATE TEMP DIRECTORY
+# =====================================================
+
+os.makedirs(
+    os.path.join(
+        project_root,
+        "temp"
+    ),
+    exist_ok=True
+)
+
 # =====================================================
 # PAGE CONFIG
 # =====================================================
@@ -85,6 +101,7 @@ This AI-powered recruitment system can:
 ### ⚙️ Tech Stack
 
 - Gemini 2.5 Pro
+- Gemini 2.0 Flash
 - Sentence Transformers
 - Streamlit
 - LangChain
@@ -110,14 +127,32 @@ with left_col:
         "📄 Job Description"
     )
 
-    jd_text = st.text_area(
+    jd_input_method = st.radio(
 
-        label="Paste Job Description",
+        "Choose JD Input Method",
 
-        height=400,
+        [
+            "Paste Text",
+            "Upload File"
+        ]
+    )
 
-        placeholder=
-        """
+    jd_text = ""
+
+    # =================================================
+    # TEXT INPUT
+    # =================================================
+
+    if jd_input_method == "Paste Text":
+
+        jd_text = st.text_area(
+
+            label="Paste Job Description",
+
+            height=400,
+
+            placeholder=
+            """
 Paste the job description here...
 
 Example:
@@ -127,7 +162,74 @@ Example:
 - LLMs
 - FastAPI
 """
-    )
+        )
+
+    # =================================================
+    # FILE INPUT
+    # =================================================
+
+    else:
+
+        jd_file = st.file_uploader(
+
+            label="Upload JD File",
+
+            type=["pdf", "docx"],
+
+            accept_multiple_files=False
+        )
+
+        if jd_file:
+
+            try:
+
+                # -------------------------------------
+                # SAVE TEMP JD FILE
+                # -------------------------------------
+
+                temp_jd_path = os.path.join(
+
+                    project_root,
+
+                    "temp",
+
+                    jd_file.name
+                )
+
+                with open(
+                    temp_jd_path,
+                    "wb"
+                ) as f:
+
+                    f.write(
+                        jd_file.getbuffer()
+                    )
+
+                # -------------------------------------
+                # PARSE JD FILE
+                # -------------------------------------
+
+                parsed_jd = (
+                    ProfileAgent.parse_resume(
+                        temp_jd_path
+                    )
+                )
+
+                jd_text = parsed_jd[
+                    "raw_text"
+                ]
+
+                st.success(
+                    "✅ JD file parsed successfully."
+                )
+
+            except Exception as e:
+
+                st.error(
+                    "❌ Failed to parse JD file."
+                )
+
+                st.exception(e)
 
 # =====================================================
 # RESUME UPLOAD SECTION
@@ -173,14 +275,14 @@ run_button = st.button(
 
 if run_button:
 
-    # -------------------------------------------------
+    # =================================================
     # VALIDATION
-    # -------------------------------------------------
+    # =================================================
 
     if not jd_text.strip():
 
         st.warning(
-            "Please enter a Job Description."
+            "Please provide a Job Description."
         )
 
     elif not uploaded_files:
@@ -191,11 +293,11 @@ if run_button:
 
     else:
 
-        # -------------------------------------------------
-        # RUN PIPELINE
-        # -------------------------------------------------
-
         try:
+
+            # -----------------------------------------
+            # RUN PIPELINE
+            # -----------------------------------------
 
             with st.spinner(
                 "Running AI screening pipeline..."
@@ -212,9 +314,9 @@ if run_button:
                     )
                 )
 
-            # ---------------------------------------------
+            # -----------------------------------------
             # SUCCESS
-            # ---------------------------------------------
+            # -----------------------------------------
 
             st.success(
                 "✅ Screening completed successfully."
@@ -226,9 +328,9 @@ if run_button:
                 "🏆 Candidate Rankings"
             )
 
-            # =============================================
+            # =========================================
             # DISPLAY RESULTS
-            # =============================================
+            # =========================================
 
             for idx, candidate in enumerate(
                 results,
@@ -267,9 +369,9 @@ if run_button:
                     expander_title
                 ):
 
-                    # -------------------------------------
+                    # ---------------------------------
                     # SUMMARY
-                    # -------------------------------------
+                    # ---------------------------------
 
                     st.subheader(
                         "🧠 Final Summary"
@@ -284,9 +386,9 @@ if run_button:
 
                     st.divider()
 
-                    # -------------------------------------
+                    # ---------------------------------
                     # OVERALL METRICS
-                    # -------------------------------------
+                    # ---------------------------------
 
                     metric_col1, metric_col2 = (
                         st.columns(2)
@@ -316,9 +418,9 @@ if run_button:
 
                     st.divider()
 
-                    # -------------------------------------
+                    # ---------------------------------
                     # DIMENSION SCORES
-                    # -------------------------------------
+                    # ---------------------------------
 
                     st.subheader(
                         "📊 Dimension Scores"
@@ -357,18 +459,19 @@ if run_button:
                         )
 
                         st.write(
-                            f"**Justification:** "
+                            "**Justification:**"
                         )
 
                         st.info(
-                            details[
-                                "justification"
-                            ]
+                            details.get(
+                                "justification",
+                                "No justification available."
+                            )
                         )
 
-        # -------------------------------------------------
+        # =================================================
         # ERROR HANDLING
-        # -------------------------------------------------
+        # =================================================
 
         except Exception as e:
 
