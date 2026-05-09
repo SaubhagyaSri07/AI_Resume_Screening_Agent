@@ -1,0 +1,109 @@
+{
+    "name": "Arjun Mehta",
+
+    "headline": "AI Engineer | NLP | Generative AI | FastAPI Developer",
+
+    "location": "Bengaluru, India",
+
+    "summary": "AI Engineer specializing in Machine Learning, NLP, and Generative AI systems. Experienced in building production-style AI applications using Python, FastAPI, LangChain, and transformer-based models.",
+
+    "skills": [
+        "Python",
+        "Machine Learning",
+        "Natural Language Processing",
+        "LLMs",
+        "FastAPI",
+        "LangChain",
+        "LangGraph",
+        "RAG",
+        "HuggingFace Transformers",
+        "PyTorch",
+        "REST APIs",
+        "React.js"
+    ],
+
+    "projects": [
+
+        {
+            "title": "AI Customer Support Agent",
+
+            "description": [
+
+                "Built an AI-powered customer support assistant using LangGraph and Gemini API.",
+
+                "Implemented Retrieval-Augmented Generation (RAG) for contextual responses.",
+
+                "Integrated FastAPI backend with React frontend dashboard."
+            ]
+        },
+
+        {
+            "title": "Fake News Detection System",
+
+            "description": [
+
+                "Fine-tuned DistilBERT model on news classification dataset.",
+
+                "Built hybrid verification pipeline combining transformer models with LLM reasoning.",
+
+                "Achieved 90% classification accuracy on validation dataset."
+            ]
+        }
+
+    ],
+
+    "experience": [
+
+        "AI Engineering Intern at TechNova Solutions (Jan 2026 - Present)",
+
+        "Worked on LLM-powered workflow automation systems.",
+
+        "Built REST APIs and semantic retrieval pipelines."
+    ],
+
+    "education": [
+
+        {
+            "degree": "Bachelor of Technology in Computer Science",
+
+            "institution": "VIT University",
+
+            "year": "2022 - 2026",
+
+            "details": "CGPA: 8.6"
+        }
+    ],
+
+    "certifications": [
+
+        {
+            "name": "Machine Learning Specialization",
+
+            "issuer": "Stanford University (Coursera)",
+
+            "date": "2025"
+        },
+
+        {
+            "name": "Generative AI with Large Language Models",
+
+            "issuer": "DeepLearning.AI",
+
+            "date": "2026"
+        }
+    ],
+
+    "tools_frameworks": [
+
+        "FastAPI",
+        "React.js",
+        "LangChain",
+        "LangGraph",
+        "PyTorch",
+        "Git",
+        "Docker",
+        "PostgreSQL",
+        "Pandas",
+        "NumPy"
+    ]
+}

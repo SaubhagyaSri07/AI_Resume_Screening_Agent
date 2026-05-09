@@ -16,8 +16,16 @@ from app.agents.score_agent import (
     ScoreAgent
 )
 
+from app.utils.linkedin_parser import (
+    LinkedInParser
+)
+
 
 class ScreeningPipeline:
+
+    # =====================================================
+    # MAIN PIPELINE
+    # =====================================================
 
     @staticmethod
     def process_candidates(
@@ -27,9 +35,18 @@ class ScreeningPipeline:
         uploaded_files
     ):
 
-        # =============================================
+        # =================================================
+        # ENSURE TEMP DIRECTORY EXISTS
+        # =================================================
+
+        os.makedirs(
+            "temp",
+            exist_ok=True
+        )
+
+        # =================================================
         # PARSE JOB DESCRIPTION
-        # =============================================
+        # =================================================
 
         jd_profile = JDAgent.parse_jd(
             jd_text
@@ -37,17 +54,17 @@ class ScreeningPipeline:
 
         results = []
 
-        # =============================================
-        # PROCESS EACH RESUME
-        # =============================================
+        # =================================================
+        # PROCESS EACH UPLOADED FILE
+        # =================================================
 
         for uploaded_file in uploaded_files:
 
-            # -----------------------------------------
-            # SAVE TEMP FILE
-            # -----------------------------------------
+            # ---------------------------------------------
+            # SAVE FILE TEMPORARILY
+            # ---------------------------------------------
 
-            temp_path = os.path.join(
+            temp_file_path = os.path.join(
 
                 "temp",
 
@@ -55,36 +72,68 @@ class ScreeningPipeline:
             )
 
             with open(
-                temp_path,
+                temp_file_path,
                 "wb"
-            ) as f:
+            ) as file:
 
-                f.write(
+                file.write(
                     uploaded_file.getbuffer()
                 )
 
-            # -----------------------------------------
-            # PARSE RESUME
-            # -----------------------------------------
+            # ---------------------------------------------
+            # DETECT FILE TYPE
+            # ---------------------------------------------
 
-            resume_data = (
-                ProfileAgent.parse_resume(
-                    temp_path
+            extension = os.path.splitext(
+                temp_file_path
+            )[1].lower()
+
+            # ---------------------------------------------
+            # LINKEDIN JSON INGESTION
+            # ---------------------------------------------
+
+            if extension == ".json":
+
+                candidate_profile = (
+
+                    LinkedInParser
+                    .parse_linkedin_json(
+
+                        temp_file_path
+                    )
                 )
-            )
 
-            candidate_profile = (
+            # ---------------------------------------------
+            # RESUME INGESTION
+            # ---------------------------------------------
 
-                ProfileAgent.extract_candidate_profile(
-                    resume_data["raw_text"]
+            else:
+
+                parsed_resume = (
+
+                    ProfileAgent.parse_resume(
+
+                        temp_file_path
+                    )
                 )
-            )
 
-            # -----------------------------------------
-            # MATCHING
-            # -----------------------------------------
+                candidate_profile = (
+
+                    ProfileAgent
+                    .extract_candidate_profile(
+
+                        parsed_resume[
+                            "raw_text"
+                        ]
+                    )
+                )
+
+            # ---------------------------------------------
+            # SEMANTIC MATCHING
+            # ---------------------------------------------
 
             match_result = (
+
                 MatchAgent.match_skills(
 
                     jd_profile[
@@ -97,11 +146,12 @@ class ScreeningPipeline:
                 )
             )
 
-            # -----------------------------------------
-            # SCORING
-            # -----------------------------------------
+            # ---------------------------------------------
+            # AI SCORING
+            # ---------------------------------------------
 
             final_result = (
+
                 ScoreAgent.evaluate_candidate(
 
                     candidate_profile=
@@ -115,24 +165,28 @@ class ScreeningPipeline:
                 )
             )
 
+            # ---------------------------------------------
+            # STORE RESULT
+            # ---------------------------------------------
+
             results.append(
                 final_result
             )
 
-        # =============================================
-        # SORT CANDIDATES
-        # =============================================
+        # =================================================
+        # SORT CANDIDATES BY SCORE
+        # =================================================
 
-        results = sorted(
+        ranked_results = sorted(
 
             results,
 
-            key=lambda x:
-                x[
+            key=lambda candidate:
+                candidate[
                     "weighted_total_score"
                 ],
 
             reverse=True
         )
 
-        return results
+        return ranked_results

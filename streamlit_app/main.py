@@ -1,5 +1,6 @@
 import sys
 import os
+import json
 
 # =====================================================
 # ADD PROJECT ROOT TO PYTHON PATH
@@ -30,14 +31,26 @@ from app.agents.profile_agent import (
     ProfileAgent
 )
 
+from app.utils.exporters import (
+    Exporter
+)
+
 # =====================================================
-# CREATE TEMP DIRECTORY
+# CREATE REQUIRED DIRECTORIES
 # =====================================================
 
 os.makedirs(
     os.path.join(
         project_root,
         "temp"
+    ),
+    exist_ok=True
+)
+
+os.makedirs(
+    os.path.join(
+        project_root,
+        "outputs"
     ),
     exist_ok=True
 )
@@ -68,7 +81,8 @@ st.markdown(
     """
 AI-powered recruitment assistant
 for intelligent candidate evaluation,
-semantic matching, and hiring recommendations.
+semantic matching, recruiter scoring,
+and hiring recommendations.
 """
 )
 
@@ -82,15 +96,16 @@ with st.sidebar:
 
     st.info(
         """
-This AI-powered recruitment system can:
+Features:
 
-- Parse Job Descriptions
-- Parse Resumes
-- Extract Candidate Profiles
-- Perform Semantic Skill Matching
-- Evaluate Candidates using AI
-- Generate Hiring Recommendations
-- Rank Candidates Automatically
+- Resume Parsing
+- JD Parsing
+- LinkedIn JSON Ingestion
+- Semantic Skill Matching
+- AI-Based Candidate Scoring
+- Recruiter Recommendations
+- Human-in-the-Loop Overrides
+- PDF / CSV / JSON Exports
 """
     )
 
@@ -98,7 +113,7 @@ This AI-powered recruitment system can:
 
     st.markdown(
         """
-### ⚙️ Tech Stack
+### ⚙️ AI Stack
 
 - Gemini 2.5 Pro
 - Gemini 2.0 Flash
@@ -183,10 +198,6 @@ Example:
 
             try:
 
-                # -------------------------------------
-                # SAVE TEMP JD FILE
-                # -------------------------------------
-
                 temp_jd_path = os.path.join(
 
                     project_root,
@@ -199,15 +210,11 @@ Example:
                 with open(
                     temp_jd_path,
                     "wb"
-                ) as f:
+                ) as file:
 
-                    f.write(
+                    file.write(
                         jd_file.getbuffer()
                     )
-
-                # -------------------------------------
-                # PARSE JD FILE
-                # -------------------------------------
 
                 parsed_jd = (
                     ProfileAgent.parse_resume(
@@ -232,20 +239,25 @@ Example:
                 st.exception(e)
 
 # =====================================================
-# RESUME UPLOAD SECTION
+# CANDIDATE UPLOAD SECTION
 # =====================================================
 
 with right_col:
 
     st.subheader(
-        "📂 Resume Upload"
+        "📂 Candidate Upload"
     )
 
     uploaded_files = st.file_uploader(
 
-        label="Upload Resume Files",
+        label=
+            "Upload Resume / LinkedIn Files",
 
-        type=["pdf", "docx"],
+        type=[
+            "pdf",
+            "docx",
+            "json"
+        ],
 
         accept_multiple_files=True
     )
@@ -270,14 +282,10 @@ run_button = st.button(
 )
 
 # =====================================================
-# PIPELINE EXECUTION
+# EXECUTE PIPELINE
 # =====================================================
 
 if run_button:
-
-    # =================================================
-    # VALIDATION
-    # =================================================
 
     if not jd_text.strip():
 
@@ -288,16 +296,16 @@ if run_button:
     elif not uploaded_files:
 
         st.warning(
-            "Please upload at least one resume."
+            "Please upload candidate files."
         )
 
     else:
 
         try:
 
-            # -----------------------------------------
+            # =========================================
             # RUN PIPELINE
-            # -----------------------------------------
+            # =========================================
 
             with st.spinner(
                 "Running AI screening pipeline..."
@@ -314,9 +322,46 @@ if run_button:
                     )
                 )
 
-            # -----------------------------------------
+            # =========================================
+            # EXPORT REPORTS
+            # =========================================
+
+            json_output_path = os.path.join(
+                project_root,
+                "outputs",
+                "results.json"
+            )
+
+            csv_output_path = os.path.join(
+                project_root,
+                "outputs",
+                "results.csv"
+            )
+
+            pdf_output_path = os.path.join(
+                project_root,
+                "outputs",
+                "results.pdf"
+            )
+
+            Exporter.export_json(
+                results,
+                json_output_path
+            )
+
+            Exporter.export_csv(
+                results,
+                csv_output_path
+            )
+
+            Exporter.export_pdf(
+                results,
+                pdf_output_path
+            )
+
+            # =========================================
             # SUCCESS
-            # -----------------------------------------
+            # =========================================
 
             st.success(
                 "✅ Screening completed successfully."
@@ -328,8 +373,10 @@ if run_button:
                 "🏆 Candidate Rankings"
             )
 
+            hr_overrides = []
+
             # =========================================
-            # DISPLAY RESULTS
+            # DISPLAY CANDIDATES
             # =========================================
 
             for idx, candidate in enumerate(
@@ -352,7 +399,29 @@ if run_button:
                     0
                 )
 
+                # =====================================
+                # RECOMMENDATION COLORS
+                # =====================================
+
+                if recommendation == "Strong Hire":
+
+                    badge = "🟢"
+
+                elif recommendation == "Hire":
+
+                    badge = "🔵"
+
+                elif recommendation == "Consider":
+
+                    badge = "🟠"
+
+                else:
+
+                    badge = "🔴"
+
                 expander_title = (
+
+                    f"{badge} "
 
                     f"{idx}. "
 
@@ -387,7 +456,7 @@ if run_button:
                     st.divider()
 
                     # ---------------------------------
-                    # OVERALL METRICS
+                    # METRICS
                     # ---------------------------------
 
                     metric_col1, metric_col2 = (
@@ -419,6 +488,53 @@ if run_button:
                     st.divider()
 
                     # ---------------------------------
+                    # SKILL MATCHING
+                    # ---------------------------------
+
+                    st.subheader(
+                        "🛠 Skill Matching"
+                    )
+
+                    match_result = candidate.get(
+                        "match_result",
+                        {}
+                    )
+
+                    matched_skills = (
+                        match_result.get(
+                            "matched_skills",
+                            []
+                        )
+                    )
+
+                    missing_skills = (
+                        match_result.get(
+                            "missing_skills",
+                            []
+                        )
+                    )
+
+                    if matched_skills:
+
+                        st.success(
+                            "Matched Skills:\n\n"
+                            + ", ".join(
+                                matched_skills
+                            )
+                        )
+
+                    if missing_skills:
+
+                        st.error(
+                            "Missing Skills:\n\n"
+                            + ", ".join(
+                                missing_skills
+                            )
+                        )
+
+                    st.divider()
+
+                    # ---------------------------------
                     # DIMENSION SCORES
                     # ---------------------------------
 
@@ -444,34 +560,272 @@ if run_button:
                             .title()
                         )
 
+                        score = details.get(
+                            "score",
+                            0
+                        )
+
+                        weight = details.get(
+                            "weight",
+                            0
+                        )
+
+                        justification = details.get(
+                            "justification",
+                            ""
+                        )
+
                         st.markdown(
                             f"### {pretty_name}"
                         )
 
-                        st.write(
-                            f"**Score:** "
-                            f"{details['score']}/10"
+                        st.progress(
+                            score / 10
                         )
 
                         st.write(
-                            f"**Weight:** "
-                            f"{details['weight']}%"
+                            f"Score: {score}/10"
                         )
 
                         st.write(
-                            "**Justification:**"
+                            f"Weight: {weight}%"
                         )
 
                         st.info(
-                            details.get(
-                                "justification",
-                                "No justification available."
+                            justification
+                        )
+
+                    st.divider()
+
+                    # ---------------------------------
+                    # HUMAN-IN-THE-LOOP PANEL
+                    # ---------------------------------
+
+                    st.subheader(
+                        "👨‍💼 HR Override Panel"
+                    )
+
+                    override_enabled = st.checkbox(
+
+                        "Enable HR Override",
+
+                        key=f"override_{idx}"
+                    )
+
+                    if override_enabled:
+
+                        override_score = st.slider(
+
+                            "Override Score",
+
+                            min_value=0.0,
+
+                            max_value=10.0,
+
+                            value=float(
+                                total_score
+                            ),
+
+                            step=0.1,
+
+                            key=f"score_{idx}"
+                        )
+
+                        override_recommendation = (
+                            st.selectbox(
+
+                                "Override Recommendation",
+
+                                [
+                                    "Strong Hire",
+                                    "Hire",
+                                    "Consider",
+                                    "Reject"
+                                ],
+
+                                key=
+                                    f"recommendation_{idx}"
                             )
                         )
 
-        # =================================================
+                        hr_reason = st.text_area(
+
+                            "HR Override Reason",
+
+                            placeholder=
+                            """
+Explain why the score or
+recommendation was overridden...
+""",
+
+                            key=f"reason_{idx}"
+                        )
+
+                        flagged = st.checkbox(
+
+                            "Flag Candidate for Manual Review",
+
+                            key=f"flag_{idx}"
+                        )
+
+                        override_data = {
+
+                            "candidate_name":
+                                candidate_name,
+
+                            "original_score":
+                                total_score,
+
+                            "override_score":
+                                override_score,
+
+                            "original_recommendation":
+                                recommendation,
+
+                            "override_recommendation":
+                                override_recommendation,
+
+                            "reason":
+                                hr_reason,
+
+                            "flagged":
+                                flagged
+                        }
+
+                        hr_overrides.append(
+                            override_data
+                        )
+
+                        st.success(
+                            "HR override applied."
+                        )
+
+            # =========================================
+            # SAVE HR OVERRIDES
+            # =========================================
+
+            if hr_overrides:
+
+                override_path = os.path.join(
+
+                    project_root,
+
+                    "outputs",
+
+                    "hr_overrides.json"
+                )
+
+                with open(
+                    override_path,
+                    "w",
+                    encoding="utf-8"
+                ) as file:
+
+                    json.dump(
+
+                        hr_overrides,
+
+                        file,
+
+                        indent=4
+                    )
+
+            # =========================================
+            # DOWNLOAD SECTION
+            # =========================================
+
+            st.divider()
+
+            st.header(
+                "📥 Export Reports"
+            )
+
+            col1, col2, col3 = st.columns(3)
+
+            # -----------------------------------------
+            # JSON
+            # -----------------------------------------
+
+            with col1:
+
+                with open(
+                    json_output_path,
+                    "rb"
+                ) as file:
+
+                    st.download_button(
+
+                        label=
+                            "Download JSON",
+
+                        data=file,
+
+                        file_name=
+                            "results.json",
+
+                        mime=
+                            "application/json",
+
+                        use_container_width=True
+                    )
+
+            # -----------------------------------------
+            # CSV
+            # -----------------------------------------
+
+            with col2:
+
+                with open(
+                    csv_output_path,
+                    "rb"
+                ) as file:
+
+                    st.download_button(
+
+                        label=
+                            "Download CSV",
+
+                        data=file,
+
+                        file_name=
+                            "results.csv",
+
+                        mime=
+                            "text/csv",
+
+                        use_container_width=True
+                    )
+
+            # -----------------------------------------
+            # PDF
+            # -----------------------------------------
+
+            with col3:
+
+                with open(
+                    pdf_output_path,
+                    "rb"
+                ) as file:
+
+                    st.download_button(
+
+                        label=
+                            "Download PDF Report",
+
+                        data=file,
+
+                        file_name=
+                            "results.pdf",
+
+                        mime=
+                            "application/pdf",
+
+                        use_container_width=True
+                    )
+
+        # =============================================
         # ERROR HANDLING
-        # =================================================
+        # =============================================
 
         except Exception as e:
 
