@@ -56,21 +56,21 @@ class Certification(BaseModel):
 
 class CandidateProfile(BaseModel):
 
-    candidate_name: str
+    candidate_name: str = ""
 
-    skills: List[str]
+    skills: List[str] = []
 
-    projects: List[Project]
+    projects: List[dict] = []
 
-    experience: List[str]
+    experience: List[str] = []
 
-    education: List[Education]
+    education: List[dict] = []
 
-    certifications: List[Certification]
+    certifications: List[dict] = []
 
-    tools_frameworks: List[str]
+    tools_frameworks: List[str] = []
 
-    summary: str
+    summary: str = ""
 
 
 # =========================================================
