@@ -1,4 +1,5 @@
 import pdfplumber
+
 from docx import Document
 
 import os
@@ -7,9 +8,14 @@ import re
 
 from typing import List
 
-from pydantic import BaseModel, ValidationError
+from pydantic import (
+    BaseModel,
+    ValidationError
+)
 
-from langchain_core.prompts import PromptTemplate
+from langchain_core.prompts import (
+    PromptTemplate
+)
 
 from app.agents.utils import (
     generate_response,
@@ -22,20 +28,29 @@ from app.agents.utils import (
 # =========================================================
 
 class Project(BaseModel):
+
     title: str
+
     description: List[str]
 
 
 class Education(BaseModel):
+
     degree: str
+
     institution: str
+
     year: str
+
     details: str
 
 
 class Certification(BaseModel):
+
     name: str
+
     issuer: str
+
     date: str
 
 
@@ -80,6 +95,7 @@ class ProfileAgent:
                 page_text = page.extract_text()
 
                 if page_text:
+
                     text += page_text + "\n"
 
         return text.strip()
@@ -94,7 +110,10 @@ class ProfileAgent:
         doc = Document(file_path)
 
         text = "\n".join(
-            para.text for para in doc.paragraphs
+
+            para.text
+
+            for para in doc.paragraphs
         )
 
         return text.strip()
@@ -106,11 +125,22 @@ class ProfileAgent:
     @staticmethod
     def clean_text(text):
 
-        text = text.replace("\t", " ")
+        text = text.replace(
+            "\t",
+            " "
+        )
 
-        text = re.sub(r"\n+", "\n", text)
+        text = re.sub(
+            r"\n+",
+            "\n",
+            text
+        )
 
-        text = re.sub(r"\s+", " ", text)
+        text = re.sub(
+            r"\s+",
+            " ",
+            text
+        )
 
         return text.strip()
 
@@ -119,7 +149,10 @@ class ProfileAgent:
     # -----------------------------------------------------
 
     @classmethod
-    def parse_resume(cls, file_path):
+    def parse_resume(
+        cls,
+        file_path
+    ):
 
         extension = os.path.splitext(
             file_path
@@ -138,6 +171,7 @@ class ProfileAgent:
             )
 
         else:
+
             raise ValueError(
                 "Unsupported file format. Use PDF or DOCX."
             )
@@ -147,8 +181,12 @@ class ProfileAgent:
         )
 
         return {
-            "file_name": os.path.basename(file_path),
-            "raw_text": cleaned_text
+
+            "file_name":
+                os.path.basename(file_path),
+
+            "raw_text":
+                cleaned_text
         }
 
     # -----------------------------------------------------
@@ -170,6 +208,8 @@ IMPORTANT RULES:
 - Do not include explanations
 - Do not hallucinate missing data
 - Use empty arrays if information is unavailable
+- Ensure all JSON keys use double quotes
+- Do not use trailing commas
 
 Resume:
 {resume_text}
@@ -213,7 +253,11 @@ Required JSON format:
 """
 
         prompt = PromptTemplate(
-            input_variables=["resume_text"],
+
+            input_variables=[
+                "resume_text"
+            ],
+
             template=template
         )
 
@@ -230,6 +274,10 @@ Required JSON format:
 
         cleaned = response_text.strip()
 
+        # -------------------------------------------------
+        # REMOVE MARKDOWN WRAPPERS
+        # -------------------------------------------------
+
         if cleaned.startswith("```json"):
 
             cleaned = cleaned.replace(
@@ -241,6 +289,36 @@ Required JSON format:
                 "```",
                 ""
             )
+
+        cleaned = cleaned.strip()
+
+        # -------------------------------------------------
+        # EXTRACT JSON OBJECT
+        # -------------------------------------------------
+
+        start_index = cleaned.find("{")
+
+        end_index = cleaned.rfind("}")
+
+        if start_index != -1 and end_index != -1:
+
+            cleaned = cleaned[
+                start_index:end_index + 1
+            ]
+
+        # -------------------------------------------------
+        # REMOVE TRAILING COMMAS
+        # -------------------------------------------------
+
+        cleaned = cleaned.replace(
+            ",}",
+            "}"
+        )
+
+        cleaned = cleaned.replace(
+            ",]",
+            "]"
+        )
 
         return cleaned.strip()
 
@@ -259,13 +337,21 @@ Required JSON format:
         )
 
         response = generate_response(
+
             prompt,
+
             model=FLASH_MODEL
         )
 
-        cleaned_response = cls.clean_json_response(
-            response
+        cleaned_response = (
+            cls.clean_json_response(
+                response
+            )
         )
+
+        # -------------------------------------------------
+        # JSON PARSING
+        # -------------------------------------------------
 
         try:
 
@@ -276,8 +362,13 @@ Required JSON format:
         except json.JSONDecodeError as e:
 
             raise ValueError(
+
                 f"Invalid JSON returned by model:\n{e}"
             )
+
+        # -------------------------------------------------
+        # PYDANTIC VALIDATION
+        # -------------------------------------------------
 
         try:
 
@@ -288,6 +379,7 @@ Required JSON format:
         except ValidationError as e:
 
             raise ValueError(
+
                 f"Pydantic validation failed:\n{e}"
             )
 
