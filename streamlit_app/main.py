@@ -3,9 +3,7 @@ import os
 import json
 import pandas as pd
 
-# =====================================================
-# ADD PROJECT ROOT TO PYTHON PATH
-# =====================================================
+# PROJECT ROOT TO PYTHON PATH
 
 project_root = os.path.abspath(
     os.path.join(
@@ -18,9 +16,7 @@ if project_root not in sys.path:
 
     sys.path.append(project_root)
 
-# =====================================================
 # IMPORTS
-# =====================================================
 
 import streamlit as st
 

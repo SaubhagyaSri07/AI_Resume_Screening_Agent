@@ -1,0 +1,79 @@
+{
+  "candidate_name": "Ankit Sharma",
+
+  "skills": [
+    "Adobe Photoshop",
+    "Illustrator",
+    "Figma",
+    "Canva",
+    "Graphic Design",
+    "UI Design",
+    "Branding",
+    "Video Editing"
+  ],
+
+  "projects": [
+    {
+      "title": "Restaurant Branding Package",
+      "description": [
+        "Designed branding assets for local restaurants.",
+        "Created social media banners and logos."
+      ],
+      "technologies": [
+        "Photoshop",
+        "Illustrator",
+        "Canva"
+      ]
+    },
+
+    {
+      "title": "YouTube Thumbnail Design System",
+      "description": [
+        "Created thumbnails and visual assets for YouTube creators.",
+        "Worked on social media marketing creatives."
+      ],
+      "technologies": [
+        "Photoshop",
+        "Canva"
+      ]
+    }
+  ],
+
+  "experience": [
+    {
+      "title": "Graphic Designer",
+      "company": "Creative Pixel Studio",
+      "duration": "2023 - Present",
+      "description": [
+        "Worked on branding and marketing design.",
+        "Designed promotional assets for clients."
+      ]
+    }
+  ],
+
+  "education": [
+    {
+      "degree": "Bachelor of Fine Arts",
+      "institution": "Delhi Arts College",
+      "year": "2023",
+      "details": "Visual Communication Design"
+    }
+  ],
+
+  "certifications": [
+    {
+      "name": "Advanced Photoshop",
+      "issuer": "Udemy",
+      "date": "2024"
+    }
+  ],
+
+  "tools_frameworks": [
+    "Photoshop",
+    "Illustrator",
+    "Canva",
+    "Figma"
+  ],
+
+  "summary": "Creative graphic designer with experience in branding, social media design, and visual storytelling."
+}

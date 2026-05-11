@@ -1,0 +1,12 @@
+[
+    {
+        "candidate_name": "Ankit Sharma",
+        "override_applied": true,
+        "original_score": 3.28,
+        "final_score": 2.1,
+        "original_recommendation": "Reject",
+        "final_recommendation": "Reject",
+        "reason": "Not Eligible.",
+        "flagged_for_review": true
+    }
+]

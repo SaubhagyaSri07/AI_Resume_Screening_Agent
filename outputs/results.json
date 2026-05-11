@@ -1,0 +1,643 @@
+{
+    "shortlist_table": [
+        {
+            "Rank": 1,
+            "Candidate Name": "Rohan Verma",
+            "Final Score": 8.68,
+            "Recommendation": "Strong Hire",
+            "HR Override": "No",
+            "Flagged": "No"
+        },
+        {
+            "Rank": 2,
+            "Candidate Name": "Arjun Mehta",
+            "Final Score": 8.41,
+            "Recommendation": "Strong Hire",
+            "HR Override": "No",
+            "Flagged": "No"
+        },
+        {
+            "Rank": 3,
+            "Candidate Name": "Saubhagya Srivastava",
+            "Final Score": 8.29,
+            "Recommendation": "Strong Hire",
+            "HR Override": "No",
+            "Flagged": "No"
+        },
+        {
+            "Rank": 4,
+            "Candidate Name": "SOMESH MISHRA",
+            "Final Score": 4.83,
+            "Recommendation": "Reject",
+            "HR Override": "No",
+            "Flagged": "No"
+        },
+        {
+            "Rank": 5,
+            "Candidate Name": "Ankit Sharma",
+            "Final Score": 2.1,
+            "Recommendation": "Reject",
+            "HR Override": "Yes",
+            "Flagged": "Yes"
+        }
+    ],
+    "candidate_reports": [
+        {
+            "candidate_name": "Rohan Verma",
+            "dimension_scores": {
+                "skills_match": {
+                    "score": 10.0,
+                    "weight": 30,
+                    "justification": "Matched 9 required skills with 0 missing skills."
+                },
+                "experience_relevance": {
+                    "score": 7.0,
+                    "weight": 25,
+                    "justification": "Candidate shows moderately strong experience and project relevance."
+                },
+                "education_certs": {
+                    "score": 8.5,
+                    "weight": 15,
+                    "justification": "Relevant education background with additional certifications."
+                },
+                "project_portfolio": {
+                    "score": 9.0,
+                    "weight": 20,
+                    "justification": "The candidate's portfolio is a perfect match for the Python AI Engineer role. The projects demonstrate not only a deep theoretical understanding but also exceptional practical implementation capability in the exact domain required.\n\n1. **Technical Complexity & Modern Frameworks:** The candidate utilizes a highly modern and sophisticated tech stack. The use of LangGraph for multi-agent orchestration in the 'Enterprise RAG Assistant' project is at the cutting edge of applied Generative AI. Fine-tuning Transformer models with PyTorch further demonstrates a core ML competency beyond simply using APIs.\n\n2. **Relevance to Job Role:** The alignment is exceptional. Every single `required_skill` (Python, LLMs, FastAPI, RAG, Vector DBs) and `preferred_skill` (LangChain, LangGraph, PyTorch, Transformers, React) is explicitly demonstrated across the three projects. The projects are a direct answer to the job's `responsibilities`, from designing RAG pipelines to building scalable FastAPI backends.\n\n3. **Production Readiness & Practical Capability:** The projects exhibit a clear understanding of production requirements. Building full-stack applications (FastAPI + React), designing scalable REST APIs, and implementing robust features like state recovery and hallucination filtering show a maturity beyond typical academic projects. The candidate has proven they can build functional, end-to-end AI systems.\n\nIn summary, this candidate is a top-tier applicant whose demonstrated skills and experience align perfectly with the role's requirements. The portfolio is exceptionally strong for the 0–2 year experience level."
+                },
+                "communication_quality": {
+                    "score": 8.5,
+                    "weight": 10,
+                    "justification": "Resume is well-structured, clear, and professionally communicated."
+                }
+            },
+            "weighted_total_score": 8.68,
+            "recommendation": "Strong Hire",
+            "final_summary": "Candidate received a weighted score of 8.68/10 with recommendation: Strong Hire.",
+            "match_result": {
+                "skills_similarity": 1.0,
+                "matched_skills": [
+                    "Python",
+                    "Machine Learning",
+                    "Natural Language Processing (NLP)",
+                    "LLMs / Generative AI",
+                    "FastAPI",
+                    "REST APIs",
+                    "Semantic Search",
+                    "Vector Databases",
+                    "RAG Systems"
+                ],
+                "missing_skills": [],
+                "semantic_match_score": 10.0,
+                "detailed_matches": [
+                    {
+                        "jd_skill": "Python",
+                        "normalized_jd_skill": "python",
+                        "best_match": "Python",
+                        "similarity": 1.0,
+                        "match_type": "direct"
+                    },
+                    {
+                        "jd_skill": "Machine Learning",
+                        "normalized_jd_skill": "machine learning",
+                        "best_match": "Machine Learning",
+                        "similarity": 1.0,
+                        "match_type": "direct"
+                    },
+                    {
+                        "jd_skill": "Natural Language Processing (NLP)",
+                        "normalized_jd_skill": "natural language processing",
+                        "best_match": "Natural Language Processing",
+                        "similarity": 1.0,
+                        "match_type": "direct"
+                    },
+                    {
+                        "jd_skill": "LLMs / Generative AI",
+                        "normalized_jd_skill": "large language models",
+                        "best_match": "LLMs",
+                        "similarity": 1.0,
+                        "match_type": "direct"
+                    },
+                    {
+                        "jd_skill": "FastAPI",
+                        "normalized_jd_skill": "application programming interface",
+                        "best_match": "FastAPI",
+                        "similarity": 1.0,
+                        "match_type": "direct"
+                    },
+                    {
+                        "jd_skill": "REST APIs",
+                        "normalized_jd_skill": "application programming interface",
+                        "best_match": "FastAPI",
+                        "similarity": 1.0,
+                        "match_type": "direct"
+                    },
+                    {
+                        "jd_skill": "Semantic Search",
+                        "normalized_jd_skill": "semantic search",
+                        "best_match": "Semantic Search",
+                        "similarity": 1.0,
+                        "match_type": "direct"
+                    },
+                    {
+                        "jd_skill": "Vector Databases",
+                        "normalized_jd_skill": "vector databases",
+                        "best_match": "Vector Databases",
+                        "similarity": 1.0,
+                        "match_type": "direct"
+                    },
+                    {
+                        "jd_skill": "RAG Systems",
+                        "normalized_jd_skill": "retrieval augmented generation",
+                        "best_match": "RAG Systems",
+                        "similarity": 1.0,
+                        "match_type": "direct"
+                    }
+                ]
+            },
+            "source_file": "sample_resume_4.json",
+            "source_type": "JSON",
+            "rank": 1
+        },
+        {
+            "candidate_name": "Arjun Mehta",
+            "dimension_scores": {
+                "skills_match": {
+                    "score": 9.6,
+                    "weight": 30,
+                    "justification": "Matched 9 required skills with 0 missing skills."
+                },
+                "experience_relevance": {
+                    "score": 6.4,
+                    "weight": 25,
+                    "justification": "Candidate shows moderately strong experience and project relevance."
+                },
+                "education_certs": {
+                    "score": 8.5,
+                    "weight": 15,
+                    "justification": "Relevant education background with additional certifications."
+                },
+                "project_portfolio": {
+                    "score": 9.0,
+                    "weight": 20,
+                    "justification": "The candidate's projects demonstrate an exceptional and direct alignment with the requirements for the Python AI Engineer role. The 'AI Customer Support Agent' project is a near-perfect showcase, utilizing a modern tech stack including LangGraph, RAG, FastAPI, and React, which covers the majority of the required and preferred skills. This project proves a strong practical capability in building end-to-end generative AI applications. The 'Fake News Detection System' further strengthens the profile by demonstrating deeper, foundational NLP skills, including fine-tuning transformer models (HuggingFace) and designing complex ML pipelines. The combination of these two projects indicates both high-level application development skills and core machine learning expertise, making the candidate an ideal fit for a role focused on generative AI."
+                },
+                "communication_quality": {
+                    "score": 8.5,
+                    "weight": 10,
+                    "justification": "Resume is well-structured, clear, and professionally communicated."
+                }
+            },
+            "weighted_total_score": 8.41,
+            "recommendation": "Strong Hire",
+            "final_summary": "Candidate received a weighted score of 8.41/10 with recommendation: Strong Hire.",
+            "match_result": {
+                "skills_similarity": 0.96,
+                "matched_skills": [
+                    "Python",
+                    "Machine Learning",
+                    "Natural Language Processing (NLP)",
+                    "LLMs / Generative AI",
+                    "FastAPI",
+                    "REST APIs",
+                    "Semantic Search",
+                    "Vector Databases",
+                    "RAG Systems"
+                ],
+                "missing_skills": [],
+                "semantic_match_score": 9.6,
+                "detailed_matches": [
+                    {
+                        "jd_skill": "Python",
+                        "normalized_jd_skill": "python",
+                        "best_match": "Python",
+                        "similarity": 1.0,
+                        "match_type": "direct"
+                    },
+                    {
+                        "jd_skill": "Machine Learning",
+                        "normalized_jd_skill": "machine learning",
+                        "best_match": "Machine Learning",
+                        "similarity": 1.0,
+                        "match_type": "direct"
+                    },
+                    {
+                        "jd_skill": "Natural Language Processing (NLP)",
+                        "normalized_jd_skill": "natural language processing",
+                        "best_match": "Natural Language Processing",
+                        "similarity": 1.0,
+                        "match_type": "direct"
+                    },
+                    {
+                        "jd_skill": "LLMs / Generative AI",
+                        "normalized_jd_skill": "large language models",
+                        "best_match": "LLMs",
+                        "similarity": 1.0,
+                        "match_type": "direct"
+                    },
+                    {
+                        "jd_skill": "FastAPI",
+                        "normalized_jd_skill": "application programming interface",
+                        "best_match": "FastAPI",
+                        "similarity": 1.0,
+                        "match_type": "direct"
+                    },
+                    {
+                        "jd_skill": "REST APIs",
+                        "normalized_jd_skill": "application programming interface",
+                        "best_match": "FastAPI",
+                        "similarity": 1.0,
+                        "match_type": "direct"
+                    },
+                    {
+                        "jd_skill": "Semantic Search",
+                        "normalized_jd_skill": "semantic search",
+                        "best_match": "RAG",
+                        "similarity": 0.82,
+                        "match_type": "inferred"
+                    },
+                    {
+                        "jd_skill": "Vector Databases",
+                        "normalized_jd_skill": "vector databases",
+                        "best_match": "Machine Learning",
+                        "similarity": 0.82,
+                        "match_type": "inferred"
+                    },
+                    {
+                        "jd_skill": "RAG Systems",
+                        "normalized_jd_skill": "retrieval augmented generation",
+                        "best_match": "RAG",
+                        "similarity": 1.0,
+                        "match_type": "direct"
+                    }
+                ]
+            },
+            "source_file": "sample_linkedin_1.json",
+            "source_type": "JSON",
+            "rank": 2
+        },
+        {
+            "candidate_name": "Saubhagya Srivastava",
+            "dimension_scores": {
+                "skills_match": {
+                    "score": 9.4,
+                    "weight": 30,
+                    "justification": "Matched 9 required skills with 0 missing skills."
+                },
+                "experience_relevance": {
+                    "score": 6.2,
+                    "weight": 25,
+                    "justification": "Candidate shows moderately strong experience and project relevance."
+                },
+                "education_certs": {
+                    "score": 8.5,
+                    "weight": 15,
+                    "justification": "Relevant education background with additional certifications."
+                },
+                "project_portfolio": {
+                    "score": 9.0,
+                    "weight": 20,
+                    "justification": "The candidate is an exceptionally strong fit for the Python AI Engineer role, presenting a portfolio that aligns almost perfectly with the job description. The projects demonstrate a rare combination of technical depth, modern tooling, and practical, end-to-end implementation capability that is outstanding for a candidate with 0-2 years of experience. \n\n1. **Relevance to the Job Role:** The projects are a direct match. The 'AUTOSTREAM' project showcases expertise in the most critical and preferred skills: LangGraph, RAG, and building agentic systems. The 'Fake News Verification' project demonstrates core NLP competency with HuggingFace and PyTorch, and creatively integrates a commercial LLM (Gemini) for explainability. All three major projects utilize FastAPI for backend APIs, precisely meeting a key requirement.\n\n2. **Technical Complexity & Modern Frameworks:** The candidate demonstrates mastery of a cutting-edge stack. Building a stateful, multi-turn agent with LangGraph (Project 3) and fine-tuning a DistilBERT model (Project 2) are significantly more complex than typical portfolio projects. The use of LangGraph, HuggingFace Transformers, RAG, and LLM APIs shows the candidate is at the forefront of Generative AI development.\n\n3. **Production Readiness & Practical Capability:** The repeated development of full-stack applications with FastAPI backends and React frontends is a powerful indicator of production-oriented thinking. The descriptions detail practical considerations like state management, input validation, mock CRM integration, and creating robust inference endpoints, proving the candidate can not only build models but also engineer complete, usable systems."
+                },
+                "communication_quality": {
+                    "score": 8.5,
+                    "weight": 10,
+                    "justification": "Resume is well-structured, clear, and professionally communicated."
+                }
+            },
+            "weighted_total_score": 8.29,
+            "recommendation": "Strong Hire",
+            "final_summary": "Candidate received a weighted score of 8.29/10 with recommendation: Strong Hire.",
+            "match_result": {
+                "skills_similarity": 0.94,
+                "matched_skills": [
+                    "Python",
+                    "Machine Learning",
+                    "Natural Language Processing (NLP)",
+                    "LLMs / Generative AI",
+                    "FastAPI",
+                    "REST APIs",
+                    "Semantic Search",
+                    "Vector Databases",
+                    "RAG Systems"
+                ],
+                "missing_skills": [],
+                "semantic_match_score": 9.4,
+                "detailed_matches": [
+                    {
+                        "jd_skill": "Python",
+                        "normalized_jd_skill": "python",
+                        "best_match": "Python",
+                        "similarity": 1.0,
+                        "match_type": "direct"
+                    },
+                    {
+                        "jd_skill": "Machine Learning",
+                        "normalized_jd_skill": "machine learning",
+                        "best_match": "Random Forest",
+                        "similarity": 0.82,
+                        "match_type": "inferred"
+                    },
+                    {
+                        "jd_skill": "Natural Language Processing (NLP)",
+                        "normalized_jd_skill": "natural language processing",
+                        "best_match": "NLP",
+                        "similarity": 1.0,
+                        "match_type": "direct"
+                    },
+                    {
+                        "jd_skill": "LLMs / Generative AI",
+                        "normalized_jd_skill": "large language models",
+                        "best_match": "LLMs",
+                        "similarity": 1.0,
+                        "match_type": "direct"
+                    },
+                    {
+                        "jd_skill": "FastAPI",
+                        "normalized_jd_skill": "application programming interface",
+                        "best_match": "Gemini API",
+                        "similarity": 1.0,
+                        "match_type": "direct"
+                    },
+                    {
+                        "jd_skill": "REST APIs",
+                        "normalized_jd_skill": "application programming interface",
+                        "best_match": "Gemini API",
+                        "similarity": 1.0,
+                        "match_type": "direct"
+                    },
+                    {
+                        "jd_skill": "Semantic Search",
+                        "normalized_jd_skill": "semantic search",
+                        "best_match": "Retrieval-Augmented Generation (RAG)",
+                        "similarity": 0.82,
+                        "match_type": "inferred"
+                    },
+                    {
+                        "jd_skill": "Vector Databases",
+                        "normalized_jd_skill": "vector databases",
+                        "best_match": "Feature Engineering",
+                        "similarity": 0.82,
+                        "match_type": "inferred"
+                    },
+                    {
+                        "jd_skill": "RAG Systems",
+                        "normalized_jd_skill": "retrieval augmented generation",
+                        "best_match": "Retrieval-Augmented Generation (RAG)",
+                        "similarity": 1.0,
+                        "match_type": "direct"
+                    }
+                ]
+            },
+            "source_file": "sample_resume_2.pdf",
+            "source_type": "PDF",
+            "rank": 3
+        },
+        {
+            "candidate_name": "SOMESH MISHRA",
+            "dimension_scores": {
+                "skills_match": {
+                    "score": 6.8,
+                    "weight": 30,
+                    "justification": "Matched 5 required skills with 4 missing skills."
+                },
+                "experience_relevance": {
+                    "score": 2.1,
+                    "weight": 25,
+                    "justification": "Candidate experience shows limited alignment with the role requirements."
+                },
+                "education_certs": {
+                    "score": 7.0,
+                    "weight": 15,
+                    "justification": "Relevant education background with additional certifications."
+                },
+                "project_portfolio": {
+                    "score": 1.8,
+                    "weight": 20,
+                    "justification": "The candidate demonstrates impressive skills in cloud architecture, serverless design, and building production-ready infrastructure on AWS. The projects showcase a strong understanding of security, scalability, and monitoring, which are valuable general engineering traits. However, there is a critical and significant mismatch between the projects and the core requirements of the Python AI Engineer role. The projects provide zero evidence of experience with the required skills, including Python for application development, Machine Learning, NLP, LLMs, RAG systems, FastAPI, or Vector Databases. While the candidate is clearly a capable cloud/backend engineer, their portfolio is not relevant to this specialized generative AI position."
+                },
+                "communication_quality": {
+                    "score": 8.5,
+                    "weight": 10,
+                    "justification": "Resume is well-structured, clear, and professionally communicated."
+                }
+            },
+            "weighted_total_score": 4.83,
+            "recommendation": "Reject",
+            "final_summary": "Candidate received a weighted score of 4.83/10 with recommendation: Reject.",
+            "match_result": {
+                "skills_similarity": 0.6817,
+                "matched_skills": [
+                    "Python",
+                    "Machine Learning",
+                    "FastAPI",
+                    "REST APIs",
+                    "Semantic Search"
+                ],
+                "missing_skills": [
+                    "Natural Language Processing (NLP)",
+                    "LLMs / Generative AI",
+                    "Vector Databases",
+                    "RAG Systems"
+                ],
+                "semantic_match_score": 6.82,
+                "detailed_matches": [
+                    {
+                        "jd_skill": "Python",
+                        "normalized_jd_skill": "python",
+                        "best_match": "Python (scripting)",
+                        "similarity": 0.7918,
+                        "match_type": "semantic"
+                    },
+                    {
+                        "jd_skill": "Machine Learning",
+                        "normalized_jd_skill": "machine learning",
+                        "best_match": "HTML/CSS",
+                        "similarity": 1.0,
+                        "match_type": "direct"
+                    },
+                    {
+                        "jd_skill": "Natural Language Processing (NLP)",
+                        "normalized_jd_skill": "natural language processing",
+                        "best_match": null,
+                        "similarity": 0.4817,
+                        "match_type": "semantic"
+                    },
+                    {
+                        "jd_skill": "LLMs / Generative AI",
+                        "normalized_jd_skill": "large language models",
+                        "best_match": null,
+                        "similarity": 0.3559,
+                        "match_type": "semantic"
+                    },
+                    {
+                        "jd_skill": "FastAPI",
+                        "normalized_jd_skill": "application programming interface",
+                        "best_match": "API Gateway",
+                        "similarity": 1.0,
+                        "match_type": "direct"
+                    },
+                    {
+                        "jd_skill": "REST APIs",
+                        "normalized_jd_skill": "application programming interface",
+                        "best_match": "API Gateway",
+                        "similarity": 1.0,
+                        "match_type": "direct"
+                    },
+                    {
+                        "jd_skill": "Semantic Search",
+                        "normalized_jd_skill": "semantic search",
+                        "best_match": "Searching",
+                        "similarity": 0.6284,
+                        "match_type": "semantic"
+                    },
+                    {
+                        "jd_skill": "Vector Databases",
+                        "normalized_jd_skill": "vector databases",
+                        "best_match": null,
+                        "similarity": 0.427,
+                        "match_type": "semantic"
+                    },
+                    {
+                        "jd_skill": "RAG Systems",
+                        "normalized_jd_skill": "retrieval augmented generation",
+                        "best_match": null,
+                        "similarity": 0.4509,
+                        "match_type": "semantic"
+                    }
+                ]
+            },
+            "source_file": "sample_resume_3.docx",
+            "source_type": "DOCX",
+            "rank": 4
+        },
+        {
+            "candidate_name": "Ankit Sharma",
+            "dimension_scores": {
+                "skills_match": {
+                    "score": 3.0,
+                    "weight": 30,
+                    "justification": "Matched 0 required skills with 9 missing skills."
+                },
+                "experience_relevance": {
+                    "score": 2.5,
+                    "weight": 25,
+                    "justification": "Candidate experience shows limited alignment with the role requirements."
+                },
+                "education_certs": {
+                    "score": 7.0,
+                    "weight": 15,
+                    "justification": "Relevant education background with additional certifications."
+                },
+                "project_portfolio": {
+                    "score": 0.0,
+                    "weight": 20,
+                    "justification": "The candidate's projects are exclusively in the field of graphic design, utilizing tools like Photoshop and Canva. There is a complete and fundamental mismatch with the requirements of the Python AI Engineer role. The projects demonstrate zero experience with Python, Machine Learning, NLP, LLMs, FastAPI, or any of the other required technical skills. Consequently, the projects provide no evidence of the candidate's ability to perform the duties described in the job description."
+                },
+                "communication_quality": {
+                    "score": 7.0,
+                    "weight": 10,
+                    "justification": "Resume communication quality is good with adequate structure and clarity."
+                }
+            },
+            "weighted_total_score": 3.28,
+            "recommendation": "Reject",
+            "final_summary": "Candidate received a weighted score of 3.28/10 with recommendation: Reject.",
+            "match_result": {
+                "skills_similarity": 0.296,
+                "matched_skills": [],
+                "missing_skills": [
+                    "Python",
+                    "Machine Learning",
+                    "Natural Language Processing (NLP)",
+                    "LLMs / Generative AI",
+                    "FastAPI",
+                    "REST APIs",
+                    "Semantic Search",
+                    "Vector Databases",
+                    "RAG Systems"
+                ],
+                "semantic_match_score": 2.96,
+                "detailed_matches": [
+                    {
+                        "jd_skill": "Python",
+                        "normalized_jd_skill": "python",
+                        "best_match": null,
+                        "similarity": 0.3338,
+                        "match_type": "semantic"
+                    },
+                    {
+                        "jd_skill": "Machine Learning",
+                        "normalized_jd_skill": "machine learning",
+                        "best_match": null,
+                        "similarity": 0.3304,
+                        "match_type": "semantic"
+                    },
+                    {
+                        "jd_skill": "Natural Language Processing (NLP)",
+                        "normalized_jd_skill": "natural language processing",
+                        "best_match": null,
+                        "similarity": 0.2541,
+                        "match_type": "semantic"
+                    },
+                    {
+                        "jd_skill": "LLMs / Generative AI",
+                        "normalized_jd_skill": "large language models",
+                        "best_match": null,
+                        "similarity": 0.1443,
+                        "match_type": "semantic"
+                    },
+                    {
+                        "jd_skill": "FastAPI",
+                        "normalized_jd_skill": "application programming interface",
+                        "best_match": null,
+                        "similarity": 0.4303,
+                        "match_type": "semantic"
+                    },
+                    {
+                        "jd_skill": "REST APIs",
+                        "normalized_jd_skill": "application programming interface",
+                        "best_match": null,
+                        "similarity": 0.4303,
+                        "match_type": "semantic"
+                    },
+                    {
+                        "jd_skill": "Semantic Search",
+                        "normalized_jd_skill": "semantic search",
+                        "best_match": null,
+                        "similarity": 0.1717,
+                        "match_type": "semantic"
+                    },
+                    {
+                        "jd_skill": "Vector Databases",
+                        "normalized_jd_skill": "vector databases",
+                        "best_match": null,
+                        "similarity": 0.3346,
+                        "match_type": "semantic"
+                    },
+                    {
+                        "jd_skill": "RAG Systems",
+                        "normalized_jd_skill": "retrieval augmented generation",
+                        "best_match": null,
+                        "similarity": 0.2343,
+                        "match_type": "semantic"
+                    }
+                ]
+            },
+            "source_file": "sample_resume_5.json",
+            "source_type": "JSON",
+            "rank": 5,
+            "hr_override": {
+                "override_applied": true,
+                "original_score": 3.28,
+                "final_score": 2.1,
+                "original_recommendation": "Reject",
+                "final_recommendation": "Reject",
+                "reason": "Not Eligible.",
+                "flagged_for_review": true
+            },
+            "final_score": 2.1,
+            "final_recommendation": "Reject"
+        }
+    ]
+}

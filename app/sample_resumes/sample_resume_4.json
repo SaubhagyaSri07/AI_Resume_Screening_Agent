@@ -1,0 +1,126 @@
+{
+  "candidate_name": "Rohan Verma",
+
+  "skills": [
+    "Python",
+    "Machine Learning",
+    "Natural Language Processing",
+    "LLMs",
+    "Generative AI",
+    "FastAPI",
+    "REST APIs",
+    "Semantic Search",
+    "Vector Databases",
+    "RAG Systems",
+    "LangChain",
+    "LangGraph",
+    "HuggingFace Transformers",
+    "PyTorch",
+    "React.js",
+    "FAISS",
+    "ChromaDB"
+  ],
+
+  "projects": [
+    {
+      "title": "Enterprise Multi-Agent RAG Assistant",
+      "description": [
+        "Built a production-style enterprise AI assistant using LangGraph and LangChain.",
+        "Implemented RAG pipelines with ChromaDB and FAISS.",
+        "Integrated semantic retrieval, memory management, and multi-agent orchestration.",
+        "Developed FastAPI backend and React frontend.",
+        "Implemented tool calling, state recovery, and hallucination filtering."
+      ],
+      "technologies": [
+        "Python",
+        "LangGraph",
+        "LangChain",
+        "FastAPI",
+        "React",
+        "ChromaDB",
+        "FAISS",
+        "Gemini API"
+      ]
+    },
+
+    {
+      "title": "LLM-Based Research Summarization Platform",
+      "description": [
+        "Built an NLP platform for research summarization using transformer models.",
+        "Fine-tuned BERT and DistilBERT models using PyTorch.",
+        "Implemented semantic search and document chunking.",
+        "Designed scalable REST APIs for inference."
+      ],
+      "technologies": [
+        "PyTorch",
+        "Transformers",
+        "FastAPI",
+        "Sentence Transformers",
+        "REST APIs"
+      ]
+    },
+
+    {
+      "title": "AI Interview Evaluation System",
+      "description": [
+        "Developed an AI-powered interview analysis platform.",
+        "Implemented vector retrieval and semantic candidate evaluation.",
+        "Integrated speech-to-text and LLM reasoning workflows."
+      ],
+      "technologies": [
+        "Python",
+        "LLMs",
+        "RAG",
+        "FastAPI",
+        "Vector Databases"
+      ]
+    }
+  ],
+
+  "experience": [
+    {
+      "title": "AI Engineer Intern",
+      "company": "NeuralStack AI",
+      "duration": "Jan 2025 - Present",
+      "description": [
+        "Developed RAG pipelines and AI agents.",
+        "Worked on FastAPI backend systems.",
+        "Built semantic retrieval systems for enterprise search."
+      ]
+    }
+  ],
+
+  "education": [
+    {
+      "degree": "B.Tech in Computer Science",
+      "institution": "IIIT Hyderabad",
+      "year": "2026",
+      "details": "Specialization in Artificial Intelligence"
+    }
+  ],
+
+  "certifications": [
+    {
+      "name": "Deep Learning Specialization",
+      "issuer": "Coursera",
+      "date": "2025"
+    },
+    {
+      "name": "Generative AI with LLMs",
+      "issuer": "DeepLearning.AI",
+      "date": "2025"
+    }
+  ],
+
+  "tools_frameworks": [
+    "LangGraph",
+    "LangChain",
+    "FastAPI",
+    "PyTorch",
+    "React",
+    "FAISS",
+    "ChromaDB"
+  ],
+
+  "summary": "AI Engineer focused on Generative AI systems, RAG architectures, semantic retrieval, and production-ready LLM applications."
+}
