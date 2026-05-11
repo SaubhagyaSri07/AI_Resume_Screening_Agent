@@ -6,6 +6,15 @@ from pydantic import (
 from typing import Dict
 
 import json
+import numpy as np
+
+from sentence_transformers import (
+    SentenceTransformer
+)
+
+from sklearn.metrics.pairwise import (
+    cosine_similarity
+)
 
 from langchain_core.prompts import (
     PromptTemplate
@@ -15,7 +24,6 @@ from app.agents.utils import (
     generate_response,
     PRO_MODEL
 )
-
 
 # =========================================================
 # PYDANTIC SCHEMAS
@@ -52,45 +60,56 @@ class CandidateScore(BaseModel):
 
 class ScoreAgent:
 
+    # =====================================================
+    # EMBEDDING MODEL
+    # =====================================================
+
+    embedding_model = SentenceTransformer(
+        "all-MiniLM-L6-v2",
+        device="cpu"
+    )
+
     # -----------------------------------------------------
     # CLEAN JSON RESPONSE
     # -----------------------------------------------------
 
     @staticmethod
-    def clean_json_response(response_text):
+    def clean_json_response(
+        response_text
+    ):
 
         cleaned = response_text.strip()
 
-        # ---------------------------------------------
-        # REMOVE MARKDOWN WRAPPERS
-        # ---------------------------------------------
-
-        if cleaned.startswith("```json"):
+        if cleaned.startswith(
+            "```json"
+        ):
 
             cleaned = (
                 cleaned
-                .replace("```json", "")
-                .replace("```", "")
+                .replace(
+                    "```json",
+                    ""
+                )
+                .replace(
+                    "```",
+                    ""
+                )
                 .strip()
             )
-
-        # ---------------------------------------------
-        # EXTRACT JSON OBJECT
-        # ---------------------------------------------
 
         start_index = cleaned.find("{")
 
         end_index = cleaned.rfind("}")
 
-        if start_index != -1 and end_index != -1:
+        if (
+            start_index != -1
+            and
+            end_index != -1
+        ):
 
             cleaned = cleaned[
                 start_index:end_index + 1
             ]
-
-        # ---------------------------------------------
-        # REMOVE TRAILING COMMAS
-        # ---------------------------------------------
 
         cleaned = cleaned.replace(
             ",}",
@@ -103,6 +122,126 @@ class ScoreAgent:
         )
 
         return cleaned.strip()
+
+    # -----------------------------------------------------
+    # SAFE TEXT NORMALIZATION
+    # -----------------------------------------------------
+
+    @staticmethod
+    def normalize_text(
+        value
+    ):
+
+        # =============================================
+        # STRING
+        # =============================================
+
+        if isinstance(
+            value,
+            str
+        ):
+
+            return value.strip()
+
+        # =============================================
+        # LIST
+        # =============================================
+
+        elif isinstance(
+            value,
+            list
+        ):
+
+            normalized_items = []
+
+            for item in value:
+
+                if isinstance(
+                    item,
+                    list
+                ):
+
+                    normalized_items.extend(
+
+                        str(sub_item)
+
+                        for sub_item in item
+                    )
+
+                else:
+
+                    normalized_items.append(
+                        str(item)
+                    )
+
+            return " ".join(
+                normalized_items
+            ).strip()
+
+        # =============================================
+        # NONE
+        # =============================================
+
+        elif value is None:
+
+            return ""
+
+        # =============================================
+        # FALLBACK
+        # =============================================
+
+        return str(value).strip()
+
+    # -----------------------------------------------------
+    # EMBEDDINGS
+    # -----------------------------------------------------
+
+    @classmethod
+    def get_embedding(
+
+        cls,
+
+        text
+    ):
+
+        normalized_text = (
+            cls.normalize_text(text)
+        )
+
+        if not normalized_text:
+
+            normalized_text = "empty"
+
+        embedding = cls.embedding_model.encode(
+
+            [normalized_text],
+
+            convert_to_numpy=True
+        )[0]
+
+        return embedding
+
+    # -----------------------------------------------------
+    # COSINE SIMILARITY
+    # -----------------------------------------------------
+
+    @staticmethod
+    def compute_similarity(
+
+        embedding1,
+
+        embedding2
+    ):
+
+        similarity = cosine_similarity(
+
+            [embedding1],
+
+            [embedding2]
+
+        )[0][0]
+
+        return float(similarity)
 
     # -----------------------------------------------------
     # SKILLS SCORE
@@ -118,11 +257,6 @@ class ScoreAgent:
             0
         )
 
-        score = min(
-            round(float(semantic_score), 1),
-            10
-        )
-
         matched_skills = len(
             match_result.get(
                 "matched_skills",
@@ -135,6 +269,11 @@ class ScoreAgent:
                 "missing_skills",
                 []
             )
+        )
+
+        score = min(
+            round(float(semantic_score), 1),
+            10
         )
 
         justification = (
@@ -156,45 +295,318 @@ class ScoreAgent:
     # EXPERIENCE SCORE
     # -----------------------------------------------------
 
-    @staticmethod
+    @classmethod
     def calculate_experience_score(
-        candidate_profile
+
+        cls,
+
+        candidate_profile,
+
+        jd_profile
     ):
+
+        # =================================================
+        # JD CONTEXT
+        # =================================================
+
+        jd_context = " ".join([
+
+            cls.normalize_text(
+                jd_profile.get(
+                    "required_skills",
+                    []
+                )
+            ),
+
+            cls.normalize_text(
+                jd_profile.get(
+                    "preferred_skills",
+                    []
+                )
+            ),
+
+            cls.normalize_text(
+                jd_profile.get(
+                    "responsibilities",
+                    []
+                )
+            )
+        ])
+
+        # =================================================
+        # CANDIDATE PROJECTS
+        # =================================================
 
         projects = candidate_profile.get(
             "projects",
             []
         )
 
-        project_count = len(projects)
+        experience = candidate_profile.get(
+            "experience",
+            []
+        )
 
-        if project_count >= 3:
+        if not projects and not experience:
 
-            score = 8.5
+            return {
 
-            justification = (
-                "Candidate has multiple strong technical projects."
+                "score": 3.0,
+
+                "weight": 25,
+
+                "justification":
+                    "Limited relevant experience or project evidence."
+            }
+
+        project_texts = []
+
+        # =================================================
+        # PROJECT NORMALIZATION
+        # =================================================
+
+        for project in projects:
+
+            if not isinstance(
+                project,
+                dict
+            ):
+
+                continue
+
+            title = cls.normalize_text(
+
+                project.get(
+                    "title",
+                    ""
+                )
             )
 
-        elif project_count >= 1:
+            description = cls.normalize_text(
 
-            score = 6.5
+                project.get(
+                    "description",
+                    []
+                )
+            )
+
+            technologies = cls.normalize_text(
+
+                project.get(
+                    "technologies",
+                    []
+                )
+            )
+
+            combined_text = " ".join([
+
+                title,
+
+                description,
+
+                technologies
+            ]).strip()
+
+            if combined_text:
+
+                project_texts.append(
+                    combined_text
+                )
+
+        # =================================================
+        # EXPERIENCE NORMALIZATION
+        # =================================================
+
+        if isinstance(
+            experience,
+            list
+        ):
+
+            for exp in experience:
+
+                if isinstance(
+                    exp,
+                    dict
+                ):
+
+                    combined_exp = " ".join([
+
+                        cls.normalize_text(
+                            exp.get(
+                                "job_title",
+                                ""
+                            )
+                        ),
+
+                        cls.normalize_text(
+                            exp.get(
+                                "company",
+                                ""
+                            )
+                        ),
+
+                        cls.normalize_text(
+                            exp.get(
+                                "description",
+                                ""
+                            )
+                        )
+                    ])
+
+                    if combined_exp.strip():
+
+                        project_texts.append(
+                            combined_exp
+                        )
+
+                else:
+
+                    normalized_exp = (
+                        cls.normalize_text(
+                            exp
+                        )
+                    )
+
+                    if normalized_exp:
+
+                        project_texts.append(
+                            normalized_exp
+                        )
+
+        # =================================================
+        # NO VALID EXPERIENCE
+        # =================================================
+
+        if not project_texts:
+
+            return {
+
+                "score": 3.0,
+
+                "weight": 25,
+
+                "justification":
+                    "No usable project or experience data found."
+            }
+
+        # =================================================
+        # EMBEDDINGS
+        # =================================================
+
+        jd_embedding = cls.get_embedding(
+            jd_context
+        )
+
+        similarity_scores = []
+
+        for text in project_texts:
+
+            if not text.strip():
+
+                continue
+
+            project_embedding = (
+                cls.get_embedding(
+                    text
+                )
+            )
+
+            similarity = cls.compute_similarity(
+
+                jd_embedding,
+
+                project_embedding
+            )
+
+            similarity_scores.append(
+                similarity
+            )
+
+        # =================================================
+        # NO VALID SIMILARITIES
+        # =================================================
+
+        if not similarity_scores:
+
+            return {
+
+                "score": 3.0,
+
+                "weight": 25,
+
+                "justification":
+                    "Unable to determine relevant experience alignment."
+            }
+
+        # =================================================
+        # USE TOP PROJECTS
+        # =================================================
+
+        top_scores = sorted(
+
+            similarity_scores,
+
+            reverse=True
+
+        )[:3]
+
+        average_similarity = float(
+            np.mean(top_scores)
+        )
+
+        # =================================================
+        # CALIBRATION
+        # =================================================
+
+        calibrated_score = round(
+            average_similarity * 10,
+            1
+        )
+
+        calibrated_score = min(
+            max(
+                calibrated_score,
+                0
+            ),
+            10
+        )
+
+        # =================================================
+        # JUSTIFICATION
+        # =================================================
+
+        if calibrated_score >= 8:
 
             justification = (
-                "Candidate has some relevant project exposure."
+                "Candidate demonstrates highly relevant "
+                "project and experience alignment with the target role."
+            )
+
+        elif calibrated_score >= 6:
+
+            justification = (
+                "Candidate shows moderately relevant "
+                "experience and project alignment."
+            )
+
+        elif calibrated_score >= 4:
+
+            justification = (
+                "Candidate has partially relevant "
+                "experience but limited direct alignment."
             )
 
         else:
 
-            score = 3.0
-
             justification = (
-                "Limited relevant experience/projects."
+                "Candidate experience shows weak "
+                "alignment with the target role."
             )
 
         return {
 
-            "score": score,
+            "score":
+                calibrated_score,
 
             "weight": 25,
 
@@ -233,11 +645,6 @@ class ScoreAgent:
 
         score = min(score, 10)
 
-        justification = (
-            "Relevant education background "
-            "with additional certifications."
-        )
-
         return {
 
             "score": score,
@@ -245,16 +652,18 @@ class ScoreAgent:
             "weight": 15,
 
             "justification":
-                justification
+                "Relevant education background with additional certifications."
         }
 
     # -----------------------------------------------------
-    # PROJECT PORTFOLIO SCORE (LLM-BASED)
+    # PROJECT PORTFOLIO SCORE
     # -----------------------------------------------------
 
     @staticmethod
     def calculate_project_score(
+
         candidate_profile,
+
         jd_profile
     ):
 
@@ -276,15 +685,15 @@ class ScoreAgent:
             }
 
         prompt_template = """
-You are an expert AI hiring evaluator.
+You are an expert hiring evaluator.
 
 Evaluate the candidate's projects based on:
 
 1. Technical complexity
-2. Relevance to job role
-3. AI/ML depth
-4. Production readiness
-5. Modern frameworks/tools usage
+2. Relevance to the job role
+3. Production readiness
+4. Modern frameworks/tools
+5. Practical implementation capability
 
 Candidate Projects:
 {projects}
@@ -292,13 +701,12 @@ Candidate Projects:
 Job Description:
 {jd_profile}
 
-IMPORTANT RULES:
+IMPORTANT:
 - Return ONLY valid JSON
 - No markdown
-- No explanations outside JSON
 - Score must be between 0 and 10
 
-Required JSON format:
+Required JSON:
 {{
     "score": 0,
     "justification": ""
@@ -365,21 +773,15 @@ Required JSON format:
                 6.0
             )
         )
-        # -------------------------------------------------
-        # CALIBRATION
-        # -------------------------------------------------
 
-        calibrated_score = raw_score * 0.9
-
-        score = round(
+        calibrated_score = round(
             min(
                 max(
-                    calibrated_score,
+                    raw_score * 0.9,
                     0
                 ),
                 10
             ),
-
             1
         )
 
@@ -390,7 +792,8 @@ Required JSON format:
 
         return {
 
-            "score": score,
+            "score":
+                calibrated_score,
 
             "weight": 20,
 
@@ -402,14 +805,20 @@ Required JSON format:
     # COMMUNICATION SCORE
     # -----------------------------------------------------
 
-    @staticmethod
+    @classmethod
     def calculate_communication_score(
+
+        cls,
+
         candidate_profile
     ):
 
-        summary = candidate_profile.get(
-            "summary",
-            ""
+        summary = cls.normalize_text(
+
+            candidate_profile.get(
+                "summary",
+                ""
+            )
         )
 
         word_count = len(
@@ -421,12 +830,20 @@ Required JSON format:
             score = 8.0
 
             justification = (
-                "Resume content is clear and well-structured."
+                "Resume content is clear and professionally structured."
+            )
+
+        elif word_count >= 10:
+
+            score = 6.5
+
+            justification = (
+                "Resume communication quality is acceptable."
             )
 
         else:
 
-            score = 5.5
+            score = 5.0
 
             justification = (
                 "Resume communication could be improved."
@@ -443,12 +860,14 @@ Required JSON format:
         }
 
     # -----------------------------------------------------
-    # TOTAL WEIGHTED SCORE
+    # TOTAL SCORE
     # -----------------------------------------------------
 
     @classmethod
     def calculate_total_score(
+
         cls,
+
         dimension_scores
     ):
 
@@ -491,19 +910,21 @@ Required JSON format:
 
             return "Consider"
 
-        else:
-
-            return "Reject"
+        return "Reject"
 
     # -----------------------------------------------------
-    # MAIN EVALUATION PIPELINE
+    # FINAL EVALUATION
     # -----------------------------------------------------
 
     @classmethod
     def evaluate_candidate(
+
         cls,
+
         candidate_profile,
+
         match_result,
+
         jd_profile
     ):
 
@@ -516,7 +937,10 @@ Required JSON format:
 
             "experience_relevance":
                 cls.calculate_experience_score(
-                    candidate_profile
+
+                    candidate_profile,
+
+                    jd_profile
                 ),
 
             "education_certs":
@@ -526,7 +950,9 @@ Required JSON format:
 
             "project_portfolio":
                 cls.calculate_project_score(
+
                     candidate_profile,
+
                     jd_profile
                 ),
 
@@ -573,13 +999,20 @@ Required JSON format:
                 recommendation,
 
             "final_summary":
-                final_summary
+                final_summary,
+
+            "match_result":
+                match_result
         }
 
         try:
 
-            validated = CandidateScore(
-                **result
+            CandidateScore(
+                **{
+                    k: v
+                    for k, v in result.items()
+                    if k != "match_result"
+                }
             )
 
         except ValidationError as e:
@@ -588,4 +1021,4 @@ Required JSON format:
                 f"Score validation failed:\n{e}"
             )
 
-        return validated.model_dump()
+        return result

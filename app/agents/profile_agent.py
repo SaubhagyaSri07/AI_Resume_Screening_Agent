@@ -1,16 +1,16 @@
 import pdfplumber
+import json
+import os
+import re
 
 from docx import Document
-
-import os
-import json
-import re
 
 from typing import List
 
 from pydantic import (
     BaseModel,
-    ValidationError
+    ValidationError,
+    Field
 )
 
 from langchain_core.prompts import (
@@ -22,6 +22,9 @@ from app.agents.utils import (
     FLASH_MODEL
 )
 
+from app.utils.linkedin_parser import (
+    LinkedInParser
+)
 
 # =========================================================
 # PYDANTIC SCHEMAS
@@ -29,46 +32,66 @@ from app.agents.utils import (
 
 class Project(BaseModel):
 
-    title: str
+    title: str = ""
 
-    description: List[str]
+    description: List[str] = Field(
+        default_factory=list
+    )
+
+    technologies: List[str] = Field(
+        default_factory=list
+    )
 
 
 class Education(BaseModel):
 
-    degree: str
+    degree: str = ""
 
-    institution: str
+    institution: str = ""
 
-    year: str
+    year: str = ""
 
-    details: str
+    details: str = ""
 
 
 class Certification(BaseModel):
 
-    name: str
+    name: str = ""
 
-    issuer: str
+    issuer: str = ""
 
-    date: str
+    date: str = ""
 
 
 class CandidateProfile(BaseModel):
 
     candidate_name: str = ""
 
-    skills: List[str] = []
+    skills: List[str] = Field(
+        default_factory=list
+    )
 
-    projects: List[dict] = []
+    projects: List[Project] = Field(
+        default_factory=list
+    )
 
-    experience: List[str] = []
+    experience: List[str] = Field(
+        default_factory=list
+    )
 
-    education: List[dict] = []
+    education: List[Education] = Field(
+        default_factory=list
+    )
 
-    certifications: List[dict] = []
+    certifications: List[
+        Certification
+    ] = Field(
+        default_factory=list
+    )
 
-    tools_frameworks: List[str] = []
+    tools_frameworks: List[str] = Field(
+        default_factory=list
+    )
 
     summary: str = ""
 
@@ -84,19 +107,27 @@ class ProfileAgent:
     # -----------------------------------------------------
 
     @staticmethod
-    def extract_pdf_text(file_path):
+    def extract_pdf_text(
+        file_path
+    ):
 
         text = ""
 
-        with pdfplumber.open(file_path) as pdf:
+        with pdfplumber.open(
+            file_path
+        ) as pdf:
 
             for page in pdf.pages:
 
-                page_text = page.extract_text()
+                page_text = (
+                    page.extract_text()
+                )
 
                 if page_text:
 
-                    text += page_text + "\n"
+                    text += (
+                        page_text + "\n"
+                    )
 
         return text.strip()
 
@@ -105,7 +136,9 @@ class ProfileAgent:
     # -----------------------------------------------------
 
     @staticmethod
-    def extract_docx_text(file_path):
+    def extract_docx_text(
+        file_path
+    ):
 
         doc = Document(file_path)
 
@@ -145,12 +178,14 @@ class ProfileAgent:
         return text.strip()
 
     # -----------------------------------------------------
-    # RESUME INGESTION
+    # RESUME / LINKEDIN INGESTION
     # -----------------------------------------------------
 
     @classmethod
     def parse_resume(
+
         cls,
+
         file_path
     ):
 
@@ -158,11 +193,34 @@ class ProfileAgent:
             file_path
         )[1].lower()
 
+        # =================================================
+        # PDF
+        # =================================================
+
         if extension == ".pdf":
 
             raw_text = cls.extract_pdf_text(
                 file_path
             )
+
+            cleaned_text = cls.clean_text(
+                raw_text
+            )
+
+            return {
+
+                "file_name":
+                    os.path.basename(
+                        file_path
+                    ),
+
+                "raw_text":
+                    cleaned_text
+            }
+
+        # =================================================
+        # DOCX
+        # =================================================
 
         elif extension == ".docx":
 
@@ -170,31 +228,68 @@ class ProfileAgent:
                 file_path
             )
 
+            cleaned_text = cls.clean_text(
+                raw_text
+            )
+
+            return {
+
+                "file_name":
+                    os.path.basename(
+                        file_path
+                    ),
+
+                "raw_text":
+                    cleaned_text
+            }
+
+        # =================================================
+        # LINKEDIN JSON
+        # =================================================
+
+        elif extension == ".json":
+
+            linkedin_profile = (
+
+                LinkedInParser
+                .parse_linkedin_json(
+                    file_path
+                )
+            )
+
+            validated = CandidateProfile(
+                **linkedin_profile
+            )
+
+            return {
+
+                "file_name":
+                    os.path.basename(
+                        file_path
+                    ),
+
+                "linkedin_profile":
+                    validated.model_dump()
+            }
+
+        # =================================================
+        # INVALID FORMAT
+        # =================================================
+
         else:
 
             raise ValueError(
-                "Unsupported file format. Use PDF or DOCX."
+                "Unsupported file format."
             )
-
-        cleaned_text = cls.clean_text(
-            raw_text
-        )
-
-        return {
-
-            "file_name":
-                os.path.basename(file_path),
-
-            "raw_text":
-                cleaned_text
-        }
 
     # -----------------------------------------------------
     # PROMPT BUILDER
     # -----------------------------------------------------
 
     @staticmethod
-    def build_prompt(resume_text):
+    def build_prompt(
+        resume_text
+    ):
 
         template = """
 You are an expert AI recruitment agent.
@@ -204,12 +299,13 @@ from the following resume text.
 
 IMPORTANT RULES:
 - Return ONLY valid JSON
-- Do not include markdown
-- Do not include explanations
-- Do not hallucinate missing data
-- Use empty arrays if information is unavailable
-- Ensure all JSON keys use double quotes
-- Do not use trailing commas
+- No markdown
+- No explanations
+- No hallucinations
+- Use empty arrays if data missing
+- Use double quotes
+- No trailing commas
+- Keep responses concise and structured
 
 Resume:
 {resume_text}
@@ -223,7 +319,8 @@ Required JSON format:
     "projects": [
         {{
             "title": "",
-            "description": []
+            "description": [],
+            "technologies": []
         }}
     ],
 
@@ -270,54 +367,66 @@ Required JSON format:
     # -----------------------------------------------------
 
     @staticmethod
-    def clean_json_response(response_text):
+    def clean_json_response(
+        response_text
+    ):
 
         cleaned = response_text.strip()
 
-        # -------------------------------------------------
-        # REMOVE MARKDOWN WRAPPERS
-        # -------------------------------------------------
+        # =================================================
+        # REMOVE MARKDOWN
+        # =================================================
 
-        if cleaned.startswith("```json"):
+        if cleaned.startswith(
+            "```json"
+        ):
 
-            cleaned = cleaned.replace(
-                "```json",
-                ""
-            )
-
-            cleaned = cleaned.replace(
-                "```",
-                ""
+            cleaned = (
+                cleaned
+                .replace(
+                    "```json",
+                    ""
+                )
+                .replace(
+                    "```",
+                    ""
+                )
             )
 
         cleaned = cleaned.strip()
 
-        # -------------------------------------------------
+        # =================================================
         # EXTRACT JSON OBJECT
-        # -------------------------------------------------
+        # =================================================
 
         start_index = cleaned.find("{")
 
         end_index = cleaned.rfind("}")
 
-        if start_index != -1 and end_index != -1:
+        if (
+            start_index != -1
+            and
+            end_index != -1
+        ):
 
             cleaned = cleaned[
                 start_index:end_index + 1
             ]
 
-        # -------------------------------------------------
+        # =================================================
         # REMOVE TRAILING COMMAS
-        # -------------------------------------------------
+        # =================================================
 
-        cleaned = cleaned.replace(
-            ",}",
-            "}"
+        cleaned = re.sub(
+            r",\s*}",
+            "}",
+            cleaned
         )
 
-        cleaned = cleaned.replace(
-            ",]",
-            "]"
+        cleaned = re.sub(
+            r",\s*]",
+            "]",
+            cleaned
         )
 
         return cleaned.strip()
@@ -328,7 +437,9 @@ Required JSON format:
 
     @classmethod
     def extract_candidate_profile(
+
         cls,
+
         resume_text
     ):
 
@@ -344,14 +455,15 @@ Required JSON format:
         )
 
         cleaned_response = (
+
             cls.clean_json_response(
                 response
             )
         )
 
-        # -------------------------------------------------
+        # =================================================
         # JSON PARSING
-        # -------------------------------------------------
+        # =================================================
 
         try:
 
@@ -366,14 +478,60 @@ Required JSON format:
                 f"Invalid JSON returned by model:\n{e}"
             )
 
-        # -------------------------------------------------
+        # =================================================
+        # SAFETY DEFAULTS
+        # =================================================
+
+        parsed_json.setdefault(
+            "candidate_name",
+            ""
+        )
+
+        parsed_json.setdefault(
+            "skills",
+            []
+        )
+
+        parsed_json.setdefault(
+            "projects",
+            []
+        )
+
+        parsed_json.setdefault(
+            "experience",
+            []
+        )
+
+        parsed_json.setdefault(
+            "education",
+            []
+        )
+
+        parsed_json.setdefault(
+            "certifications",
+            []
+        )
+
+        parsed_json.setdefault(
+            "tools_frameworks",
+            []
+        )
+
+        parsed_json.setdefault(
+            "summary",
+            ""
+        )
+
+        # =================================================
         # PYDANTIC VALIDATION
-        # -------------------------------------------------
+        # =================================================
 
         try:
 
-            validated_output = CandidateProfile(
-                **parsed_json
+            validated_output = (
+                CandidateProfile(
+                    **parsed_json
+                )
             )
 
         except ValidationError as e:

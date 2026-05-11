@@ -1,6 +1,7 @@
 import sys
 import os
 import json
+import pandas as pd
 
 # =====================================================
 # ADD PROJECT ROOT TO PYTHON PATH
@@ -157,7 +158,7 @@ left_col, right_col = st.columns(
 )
 
 # =====================================================
-# JOB DESCRIPTION SECTION
+# JOB DESCRIPTION
 # =====================================================
 
 with left_col:
@@ -193,13 +194,6 @@ with left_col:
             placeholder=
             """
 Paste the job description here...
-
-Example:
-- Python
-- NLP
-- Machine Learning
-- LLMs
-- FastAPI
 """
         )
 
@@ -251,19 +245,19 @@ Example:
                 ]
 
                 st.success(
-                    "✅ JD file parsed successfully."
+                    "✅ JD parsed successfully."
                 )
 
             except Exception as e:
 
                 st.error(
-                    "❌ Failed to parse JD file."
+                    "❌ Failed to parse JD."
                 )
 
                 st.exception(e)
 
 # =====================================================
-# CANDIDATE UPLOAD SECTION
+# CANDIDATE UPLOADS
 # =====================================================
 
 with right_col:
@@ -366,10 +360,123 @@ if st.session_state.screening_completed:
         "✅ Screening completed successfully."
     )
 
+    # =================================================
+    # SHORTLIST TABLE
+    # =================================================
+
     st.divider()
 
     st.header(
-        "🏆 Candidate Rankings"
+        "📋 Recruiter Shortlist Table"
+    )
+
+    shortlist_rows = []
+
+    for idx, candidate in enumerate(
+        results,
+        start=1
+    ):
+
+        ai_score = candidate.get(
+            "weighted_total_score",
+            0
+        )
+
+        ai_recommendation = candidate.get(
+            "recommendation",
+            "Unknown"
+        )
+
+        final_score = candidate.get(
+            "final_score",
+            ai_score
+        )
+
+        final_recommendation = candidate.get(
+            "final_recommendation",
+            ai_recommendation
+        )
+
+        dimension_scores = candidate.get(
+            "dimension_scores",
+            {}
+        )
+
+        shortlist_rows.append({
+
+            "Rank":
+                idx,
+
+            "Candidate":
+                candidate.get(
+                    "candidate_name",
+                    "Unknown"
+                ),
+
+            "Final Score":
+                final_score,
+
+            "Recommendation":
+                final_recommendation,
+
+            "Skills":
+                dimension_scores.get(
+                    "skills_match",
+                    {}
+                ).get(
+                    "score",
+                    0
+                ),
+
+            "Experience":
+                dimension_scores.get(
+                    "experience_relevance",
+                    {}
+                ).get(
+                    "score",
+                    0
+                ),
+
+            "Portfolio":
+                dimension_scores.get(
+                    "project_portfolio",
+                    {}
+                ).get(
+                    "score",
+                    0
+                ),
+
+            "Flagged":
+                candidate.get(
+                    "hr_override",
+                    {}
+                ).get(
+                    "flagged_for_review",
+                    False
+                )
+        })
+
+    shortlist_df = pd.DataFrame(
+        shortlist_rows
+    )
+
+    st.dataframe(
+
+        shortlist_df,
+
+        use_container_width=True,
+
+        hide_index=True
+    )
+
+    # =================================================
+    # DETAILED REPORTS
+    # =================================================
+
+    st.divider()
+
+    st.header(
+        "📑 Detailed Candidate Reports"
     )
 
     # =================================================
@@ -438,13 +545,9 @@ if st.session_state.screening_completed:
 
             f"{badge} "
 
-            f"{idx}. "
+            f"Rank #{idx} — "
 
             f"{candidate_name} "
-
-            f"— "
-
-            f"{final_recommendation} "
 
             f"({final_score}/10)"
         )
@@ -517,7 +620,7 @@ if st.session_state.screening_completed:
                 st.metric(
 
                     label=
-                        "Final Recommendation",
+                        "Recommendation",
 
                     value=
                         final_recommendation
@@ -525,7 +628,6 @@ if st.session_state.screening_completed:
 
             # =========================================
             # ORIGINAL AI DECISION
-            # ONLY IF OVERRIDDEN
             # =========================================
 
             if candidate.get(
@@ -590,6 +692,63 @@ AI originally recommended:
                     + ", ".join(
                         missing_skills
                     )
+                )
+
+            # =========================================
+            # DETAILED MATCHES
+            # =========================================
+
+            detailed_matches = (
+                match_result.get(
+                    "detailed_matches",
+                    []
+                )
+            )
+
+            if detailed_matches:
+
+                st.subheader(
+                    "🔍 Detailed Semantic Matches"
+                )
+
+                detailed_rows = []
+
+                for match in detailed_matches:
+
+                    detailed_rows.append({
+
+                        "JD Skill":
+                            match.get(
+                                "jd_skill"
+                            ),
+
+                        "Best Match":
+                            match.get(
+                                "best_match"
+                            ),
+
+                        "Similarity":
+                            match.get(
+                                "similarity"
+                            ),
+
+                        "Match Type":
+                            match.get(
+                                "match_type"
+                            )
+                    })
+
+                detailed_df = pd.DataFrame(
+                    detailed_rows
+                )
+
+                st.dataframe(
+
+                    detailed_df,
+
+                    use_container_width=True,
+
+                    hide_index=True
                 )
 
             st.divider()
@@ -890,7 +1049,7 @@ recommendation was overridden...
         )
 
     # =================================================
-    # EXPORT FINAL RESULTS
+    # EXPORT RESULTS
     # =================================================
 
     json_output_path = os.path.join(
