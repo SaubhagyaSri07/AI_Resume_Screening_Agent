@@ -5,69 +5,47 @@ from reportlab.platypus import (
     SimpleDocTemplate,
     Paragraph,
     Spacer,
-    PageBreak
+    PageBreak,
+    Table,
+    TableStyle
 )
+
+from reportlab.lib import colors
 
 from reportlab.lib.styles import (
     getSampleStyleSheet
 )
 
+from reportlab.lib.pagesizes import (
+    letter
+)
+
+
+# =========================================================
+# EXPORTER
+# =========================================================
 
 class Exporter:
 
     # =====================================================
-    # JSON EXPORT
+    # BUILD SHORTLIST TABLE
     # =====================================================
 
     @staticmethod
-    def export_json(
-
-        results,
-
-        output_path
+    def build_shortlist_table(
+        results
     ):
 
-        with open(
-            output_path,
-            "w",
-            encoding="utf-8"
-        ) as file:
-
-            json.dump(
-
-                results,
-
-                file,
-
-                indent=4
-            )
-
-    # =====================================================
-    # CSV EXPORT
-    # =====================================================
-
-    @staticmethod
-    def export_csv(
-
-        results,
-
-        output_path
-    ):
-
-        rows = []
-
-        # =================================================
-        # PROCESS CANDIDATES
-        # =================================================
+        shortlist_rows = []
 
         for idx, candidate in enumerate(
             results,
             start=1
         ):
 
-            # ---------------------------------------------
+            # -------------------------------------------------
             # AI VALUES
-            # ---------------------------------------------
+            # -------------------------------------------------
 
             ai_score = candidate.get(
                 "weighted_total_score",
@@ -79,9 +57,9 @@ class Exporter:
                 "Unknown"
             )
 
-            # ---------------------------------------------
+            # -------------------------------------------------
             # FINAL VALUES
-            # ---------------------------------------------
+            # -------------------------------------------------
 
             final_score = candidate.get(
                 "final_score",
@@ -93,9 +71,9 @@ class Exporter:
                 ai_recommendation
             )
 
-            # ---------------------------------------------
+            # -------------------------------------------------
             # HR OVERRIDE
-            # ---------------------------------------------
+            # -------------------------------------------------
 
             hr_override = candidate.get(
                 "hr_override",
@@ -107,11 +85,12 @@ class Exporter:
                 False
             )
 
-            # ---------------------------------------------
-            # BASE ROW
-            # ---------------------------------------------
+            flagged = hr_override.get(
+                "flagged_for_review",
+                False
+            )
 
-            row = {
+            shortlist_rows.append({
 
                 "Rank":
                     idx,
@@ -122,105 +101,97 @@ class Exporter:
                         "Unknown"
                     ),
 
-                # -----------------------------------------
-                # AI DECISION
-                # -----------------------------------------
-
-                "AI Score":
-                    ai_score,
-
-                "AI Recommendation":
-                    ai_recommendation,
-
-                # -----------------------------------------
-                # FINAL DECISION
-                # -----------------------------------------
-
                 "Final Score":
-                    final_score,
+                    round(
+                        float(final_score),
+                        2
+                    ),
 
-                "Final Recommendation":
+                "Recommendation":
                     final_recommendation,
 
-                # -----------------------------------------
-                # OVERRIDE
-                # -----------------------------------------
+                "HR Override":
+                    "Yes"
+                    if override_applied
+                    else "No",
 
-                "HR Override Applied":
-                    override_applied
-            }
+                "Flagged":
+                    "Yes"
+                    if flagged
+                    else "No"
+            })
 
-            # ---------------------------------------------
-            # ADD OVERRIDE DETAILS
-            # ONLY IF APPLIED
-            # ---------------------------------------------
+        return shortlist_rows
 
-            if override_applied:
+    # =====================================================
+    # JSON EXPORT
+    # =====================================================
 
-                row.update({
+    @classmethod
+    def export_json(
 
-                    "Flagged For Review":
-                        hr_override.get(
-                            "flagged_for_review",
-                            False
-                        ),
+        cls,
 
-                    "HR Reason":
-                        hr_override.get(
-                            "reason",
-                            ""
-                        )
-                })
+        results,
 
-            # =================================================
-            # DIMENSION SCORES
-            # =================================================
+        output_path
+    ):
 
-            dimensions = candidate.get(
-                "dimension_scores",
-                {}
+        shortlist_table = (
+            cls.build_shortlist_table(
+                results
             )
-
-            for (
-                dimension,
-                details
-            ) in dimensions.items():
-
-                pretty_name = (
-                    dimension
-                    .replace("_", " ")
-                    .title()
-                )
-
-                row[
-                    f"{pretty_name} Score"
-                ] = details.get(
-                    "score",
-                    0
-                )
-
-                row[
-                    f"{pretty_name} Justification"
-                ] = details.get(
-                    "justification",
-                    ""
-                )
-
-            rows.append(
-                row
-            )
-
-        # =================================================
-        # DATAFRAME
-        # =================================================
-
-        df = pd.DataFrame(
-            rows
         )
 
-        # =================================================
-        # EXPORT CSV
-        # =================================================
+        export_payload = {
+
+            "shortlist_table":
+                shortlist_table,
+
+            "candidate_reports":
+                results
+        }
+
+        with open(
+            output_path,
+            "w",
+            encoding="utf-8"
+        ) as file:
+
+            json.dump(
+
+                export_payload,
+
+                file,
+
+                indent=4,
+
+                ensure_ascii=False
+            )
+
+    # =====================================================
+    # CSV EXPORT
+    # =====================================================
+
+    @classmethod
+    def export_csv(
+
+        cls,
+
+        results,
+
+        output_path
+    ):
+
+        shortlist_table = (
+            cls.build_shortlist_table(
+                results
+            )
+        )
+
+        df = pd.DataFrame(
+            shortlist_table
+        )
 
         df.to_csv(
 
@@ -233,8 +204,10 @@ class Exporter:
     # PDF EXPORT
     # =====================================================
 
-    @staticmethod
+    @classmethod
     def export_pdf(
+
+        cls,
 
         results,
 
@@ -246,7 +219,10 @@ class Exporter:
         # -------------------------------------------------
 
         doc = SimpleDocTemplate(
-            output_path
+
+            output_path,
+
+            pagesize=letter
         )
 
         styles = (
@@ -255,9 +231,9 @@ class Exporter:
 
         elements = []
 
-        # -------------------------------------------------
+        # =================================================
         # TITLE
-        # -------------------------------------------------
+        # =================================================
 
         title = Paragraph(
 
@@ -275,6 +251,166 @@ class Exporter:
         )
 
         # =================================================
+        # SHORTLIST TABLE HEADING
+        # =================================================
+
+        shortlist_heading = Paragraph(
+
+            "<b>Recruiter Shortlist Table</b>",
+
+            styles["Heading2"]
+        )
+
+        elements.append(
+            shortlist_heading
+        )
+
+        elements.append(
+            Spacer(1, 12)
+        )
+
+        # =================================================
+        # BUILD SHORTLIST TABLE
+        # =================================================
+
+        shortlist_table = (
+            cls.build_shortlist_table(
+                results
+            )
+        )
+
+        table_data = [[
+
+            "Rank",
+            "Candidate",
+            "Final Score",
+            "Recommendation",
+            "Override",
+            "Flagged"
+        ]]
+
+        for row in shortlist_table:
+
+            table_data.append([
+
+                row["Rank"],
+
+                row["Candidate Name"],
+
+                f"{row['Final Score']}/10",
+
+                row["Recommendation"],
+
+                row["HR Override"],
+
+                row["Flagged"]
+            ])
+
+        table = Table(
+
+            table_data,
+
+            colWidths=[
+                50,
+                180,
+                80,
+                110,
+                70,
+                60
+            ]
+        )
+
+        table.setStyle(
+
+            TableStyle([
+
+                (
+                    "BACKGROUND",
+                    (0, 0),
+                    (-1, 0),
+                    colors.HexColor("#2E3B4E")
+                ),
+
+                (
+                    "TEXTCOLOR",
+                    (0, 0),
+                    (-1, 0),
+                    colors.white
+                ),
+
+                (
+                    "FONTNAME",
+                    (0, 0),
+                    (-1, 0),
+                    "Helvetica-Bold"
+                ),
+
+                (
+                    "BOTTOMPADDING",
+                    (0, 0),
+                    (-1, 0),
+                    10
+                ),
+
+                (
+                    "GRID",
+                    (0, 0),
+                    (-1, -1),
+                    1,
+                    colors.black
+                ),
+
+                (
+                    "BACKGROUND",
+                    (0, 1),
+                    (-1, -1),
+                    colors.whitesmoke
+                ),
+
+                (
+                    "FONTNAME",
+                    (0, 1),
+                    (-1, -1),
+                    "Helvetica"
+                ),
+
+                (
+                    "ALIGN",
+                    (0, 0),
+                    (-1, -1),
+                    "CENTER"
+                )
+            ])
+        )
+
+        elements.append(
+            table
+        )
+
+        elements.append(
+            Spacer(1, 24)
+        )
+
+        # =================================================
+        # DETAILED REPORTS HEADING
+        # =================================================
+
+        detail_heading = Paragraph(
+
+            "<b>Detailed Candidate Reports</b>",
+
+            styles["Heading2"]
+        )
+
+        elements.append(
+            detail_heading
+        )
+
+        elements.append(
+            Spacer(1, 18)
+        )
+
+        # =================================================
         # PROCESS EACH CANDIDATE
         # =================================================
 
@@ -283,9 +419,9 @@ class Exporter:
             start=1
         ):
 
-            # ---------------------------------------------
+            # -------------------------------------------------
             # AI VALUES
-            # ---------------------------------------------
+            # -------------------------------------------------
 
             ai_score = candidate.get(
                 "weighted_total_score",
@@ -297,9 +433,9 @@ class Exporter:
                 "Unknown"
             )
 
-            # ---------------------------------------------
+            # -------------------------------------------------
             # FINAL VALUES
-            # ---------------------------------------------
+            # -------------------------------------------------
 
             final_score = candidate.get(
                 "final_score",
@@ -311,9 +447,9 @@ class Exporter:
                 ai_recommendation
             )
 
-            # ---------------------------------------------
+            # -------------------------------------------------
             # HR OVERRIDE
-            # ---------------------------------------------
+            # -------------------------------------------------
 
             hr_override = candidate.get(
                 "hr_override",
@@ -325,16 +461,21 @@ class Exporter:
                 False
             )
 
-            # ---------------------------------------------
+            flagged = hr_override.get(
+                "flagged_for_review",
+                False
+            )
+
+            # =================================================
             # HEADER
-            # ---------------------------------------------
+            # =================================================
 
             heading = Paragraph(
 
                 f"""
                 <b>
                 Rank #{idx} —
-                {candidate['candidate_name']}
+                {candidate.get('candidate_name', 'Unknown')}
                 </b>
                 """,
 
@@ -346,16 +487,12 @@ class Exporter:
             )
 
             elements.append(
-                Spacer(1, 12)
+                Spacer(1, 10)
             )
 
             # =================================================
             # BASIC INFO
             # =================================================
-
-            # ---------------------------------------------
-            # WITH HR OVERRIDE
-            # ---------------------------------------------
 
             if override_applied:
 
@@ -378,13 +515,9 @@ class Exporter:
                 <br/><br/>
 
                 <b>Final Summary:</b>
-                {candidate['final_summary']}
+                {candidate.get('final_summary', '')}
                 <br/><br/>
                 """
-
-            # ---------------------------------------------
-            # WITHOUT HR OVERRIDE
-            # ---------------------------------------------
 
             else:
 
@@ -399,26 +532,24 @@ class Exporter:
                 <br/><br/>
 
                 <b>Final Summary:</b>
-                {candidate['final_summary']}
+                {candidate.get('final_summary', '')}
                 <br/><br/>
                 """
 
             elements.append(
 
                 Paragraph(
-
                     basic_info,
-
                     styles["BodyText"]
                 )
             )
 
             elements.append(
-                Spacer(1, 10)
+                Spacer(1, 8)
             )
 
             # =================================================
-            # HR OVERRIDE SECTION
+            # HR OVERRIDE DETAILS
             # =================================================
 
             if override_applied:
@@ -430,36 +561,29 @@ class Exporter:
                 <br/><br/>
 
                 <b>Flagged For Manual Review:</b>
-                {hr_override.get('flagged_for_review')}
+                {"Yes" if flagged else "No"}
                 <br/><br/>
 
-                <b>HR Override Reason:</b>
-                {hr_override.get('reason')}
+                <b>HR Reason:</b>
+                {hr_override.get('reason', '')}
                 <br/><br/>
                 """
 
                 elements.append(
 
                     Paragraph(
-
                         override_text,
-
                         styles["BodyText"]
                     )
                 )
 
                 elements.append(
-                    Spacer(1, 10)
+                    Spacer(1, 8)
                 )
 
             # =================================================
             # DIMENSION SCORES
             # =================================================
-
-            dimensions = candidate.get(
-                "dimension_scores",
-                {}
-            )
 
             dimension_heading = Paragraph(
 
@@ -474,6 +598,11 @@ class Exporter:
 
             elements.append(
                 Spacer(1, 8)
+            )
+
+            dimensions = candidate.get(
+                "dimension_scores",
+                {}
             )
 
             for (
@@ -499,7 +628,7 @@ class Exporter:
 
                 justification = details.get(
                     "justification",
-                    "No justification available."
+                    ""
                 )
 
                 dimension_text = f"""
@@ -523,9 +652,7 @@ class Exporter:
                 elements.append(
 
                     Paragraph(
-
                         dimension_text,
-
                         styles["BodyText"]
                     )
                 )
@@ -535,16 +662,8 @@ class Exporter:
                 )
 
             # =================================================
-            # PAGE SEPARATOR
+            # PAGE BREAK
             # =================================================
-
-            elements.append(
-                Spacer(1, 20)
-            )
-
-            # ---------------------------------------------
-            # AVOID EXTRA BLANK PAGE
-            # ---------------------------------------------
 
             if idx != len(results):
 

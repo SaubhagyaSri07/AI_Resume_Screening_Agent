@@ -1,4 +1,4 @@
-import pdfplumber
+import fitz
 import json
 import os
 import re
@@ -43,6 +43,19 @@ class Project(BaseModel):
     )
 
 
+class Experience(BaseModel):
+
+    title: str = ""
+
+    company: str = ""
+
+    duration: str = ""
+
+    description: List[str] = Field(
+        default_factory=list
+    )
+
+
 class Education(BaseModel):
 
     degree: str = ""
@@ -75,7 +88,7 @@ class CandidateProfile(BaseModel):
         default_factory=list
     )
 
-    experience: List[str] = Field(
+    experience: List[Experience] = Field(
         default_factory=list
     )
 
@@ -113,21 +126,18 @@ class ProfileAgent:
 
         text = ""
 
-        with pdfplumber.open(
+        document = fitz.open(
             file_path
-        ) as pdf:
+        )
 
-            for page in pdf.pages:
+        for page in document:
 
-                page_text = (
-                    page.extract_text()
-                )
+            text += (
+                page.get_text()
+                + "\n"
+            )
 
-                if page_text:
-
-                    text += (
-                        page_text + "\n"
-                    )
+        document.close()
 
         return text.strip()
 
@@ -175,10 +185,75 @@ class ProfileAgent:
             text
         )
 
+        text = re.sub(
+            r"[•●▪►]",
+            "-",
+            text
+        )
+
         return text.strip()
 
     # -----------------------------------------------------
-    # RESUME / LINKEDIN INGESTION
+    # SECTION EXTRACTION
+    # -----------------------------------------------------
+
+    @staticmethod
+    def extract_sections(
+        text
+    ):
+
+        sections = {
+
+            "skills": "",
+            "projects": "",
+            "experience": "",
+            "education": "",
+            "certifications": ""
+        }
+
+        lowered = text.lower()
+
+        patterns = {
+
+            "skills":
+                r"(skills|technical skills)(.*?)(projects|experience|education|certifications|$)",
+
+            "projects":
+                r"(projects|project experience)(.*?)(experience|education|skills|certifications|$)",
+
+            "experience":
+                r"(experience|work experience)(.*?)(projects|education|skills|certifications|$)",
+
+            "education":
+                r"(education)(.*?)(experience|projects|skills|certifications|$)",
+
+            "certifications":
+                r"(certifications|licenses)(.*?)(education|experience|projects|skills|$)"
+        }
+
+        for section, pattern in (
+            patterns.items()
+        ):
+
+            match = re.search(
+
+                pattern,
+
+                lowered,
+
+                re.DOTALL
+            )
+
+            if match:
+
+                sections[
+                    section
+                ] = match.group(2)
+
+        return sections
+
+    # -----------------------------------------------------
+    # PARSE RESUME / LINKEDIN
     # -----------------------------------------------------
 
     @classmethod
@@ -203,21 +278,6 @@ class ProfileAgent:
                 file_path
             )
 
-            cleaned_text = cls.clean_text(
-                raw_text
-            )
-
-            return {
-
-                "file_name":
-                    os.path.basename(
-                        file_path
-                    ),
-
-                "raw_text":
-                    cleaned_text
-            }
-
         # =================================================
         # DOCX
         # =================================================
@@ -227,21 +287,6 @@ class ProfileAgent:
             raw_text = cls.extract_docx_text(
                 file_path
             )
-
-            cleaned_text = cls.clean_text(
-                raw_text
-            )
-
-            return {
-
-                "file_name":
-                    os.path.basename(
-                        file_path
-                    ),
-
-                "raw_text":
-                    cleaned_text
-            }
 
         # =================================================
         # LINKEDIN JSON
@@ -273,7 +318,7 @@ class ProfileAgent:
             }
 
         # =================================================
-        # INVALID FORMAT
+        # INVALID
         # =================================================
 
         else:
@@ -281,6 +326,28 @@ class ProfileAgent:
             raise ValueError(
                 "Unsupported file format."
             )
+
+        cleaned_text = cls.clean_text(
+            raw_text
+        )
+
+        sections = cls.extract_sections(
+            cleaned_text
+        )
+
+        return {
+
+            "file_name":
+                os.path.basename(
+                    file_path
+                ),
+
+            "raw_text":
+                cleaned_text,
+
+            "sections":
+                sections
+        }
 
     # -----------------------------------------------------
     # PROMPT BUILDER
@@ -292,20 +359,20 @@ class ProfileAgent:
     ):
 
         template = """
-You are an expert AI recruitment agent.
+You are an expert AI recruitment parser.
 
 Extract structured candidate information
-from the following resume text.
+from the following resume.
 
-IMPORTANT RULES:
+IMPORTANT:
 - Return ONLY valid JSON
 - No markdown
 - No explanations
 - No hallucinations
-- Use empty arrays if data missing
-- Use double quotes
-- No trailing commas
-- Keep responses concise and structured
+- Use empty arrays if missing
+- Keep extraction factual
+- Do not invent experience
+- Preserve actual technologies
 
 Resume:
 {resume_text}
@@ -324,7 +391,14 @@ Required JSON format:
         }}
     ],
 
-    "experience": [],
+    "experience": [
+        {{
+            "title": "",
+            "company": "",
+            "duration": "",
+            "description": []
+        }}
+    ],
 
     "education": [
         {{
@@ -363,7 +437,7 @@ Required JSON format:
         )
 
     # -----------------------------------------------------
-    # JSON CLEANER
+    # CLEAN JSON RESPONSE
     # -----------------------------------------------------
 
     @staticmethod
@@ -372,10 +446,6 @@ Required JSON format:
     ):
 
         cleaned = response_text.strip()
-
-        # =================================================
-        # REMOVE MARKDOWN
-        # =================================================
 
         if cleaned.startswith(
             "```json"
@@ -395,10 +465,6 @@ Required JSON format:
 
         cleaned = cleaned.strip()
 
-        # =================================================
-        # EXTRACT JSON OBJECT
-        # =================================================
-
         start_index = cleaned.find("{")
 
         end_index = cleaned.rfind("}")
@@ -412,10 +478,6 @@ Required JSON format:
             cleaned = cleaned[
                 start_index:end_index + 1
             ]
-
-        # =================================================
-        # REMOVE TRAILING COMMAS
-        # =================================================
 
         cleaned = re.sub(
             r",\s*}",
@@ -482,48 +544,27 @@ Required JSON format:
         # SAFETY DEFAULTS
         # =================================================
 
-        parsed_json.setdefault(
-            "candidate_name",
-            ""
-        )
+        defaults = {
 
-        parsed_json.setdefault(
-            "skills",
-            []
-        )
+            "candidate_name": "",
+            "skills": [],
+            "projects": [],
+            "experience": [],
+            "education": [],
+            "certifications": [],
+            "tools_frameworks": [],
+            "summary": ""
+        }
 
-        parsed_json.setdefault(
-            "projects",
-            []
-        )
+        for key, value in defaults.items():
 
-        parsed_json.setdefault(
-            "experience",
-            []
-        )
-
-        parsed_json.setdefault(
-            "education",
-            []
-        )
-
-        parsed_json.setdefault(
-            "certifications",
-            []
-        )
-
-        parsed_json.setdefault(
-            "tools_frameworks",
-            []
-        )
-
-        parsed_json.setdefault(
-            "summary",
-            ""
-        )
+            parsed_json.setdefault(
+                key,
+                value
+            )
 
         # =================================================
-        # PYDANTIC VALIDATION
+        # VALIDATION
         # =================================================
 
         try:

@@ -156,6 +156,10 @@ class ScoreAgent:
 
             for item in value:
 
+                # -------------------------------------
+                # NESTED LIST
+                # -------------------------------------
+
                 if isinstance(
                     item,
                     list
@@ -168,6 +172,29 @@ class ScoreAgent:
                         for sub_item in item
                     )
 
+                # -------------------------------------
+                # DICTIONARY
+                # -------------------------------------
+
+                elif isinstance(
+                    item,
+                    dict
+                ):
+
+                    normalized_items.append(
+
+                        " ".join(
+
+                            str(v)
+
+                            for v in item.values()
+                        )
+                    )
+
+                # -------------------------------------
+                # NORMAL ITEM
+                # -------------------------------------
+
                 else:
 
                     normalized_items.append(
@@ -176,6 +203,22 @@ class ScoreAgent:
 
             return " ".join(
                 normalized_items
+            ).strip()
+
+        # =============================================
+        # DICTIONARY
+        # =============================================
+
+        elif isinstance(
+            value,
+            dict
+        ):
+
+            return " ".join(
+
+                str(v)
+
+                for v in value.values()
             ).strip()
 
         # =============================================
@@ -193,7 +236,7 @@ class ScoreAgent:
         return str(value).strip()
 
     # -----------------------------------------------------
-    # EMBEDDINGS
+    # EMBEDDING
     # -----------------------------------------------------
 
     @classmethod
@@ -330,11 +373,18 @@ class ScoreAgent:
                     "responsibilities",
                     []
                 )
+            ),
+
+            cls.normalize_text(
+                jd_profile.get(
+                    "tools_frameworks",
+                    []
+                )
             )
         ])
 
         # =================================================
-        # CANDIDATE PROJECTS
+        # CANDIDATE DATA
         # =================================================
 
         projects = candidate_profile.get(
@@ -356,13 +406,13 @@ class ScoreAgent:
                 "weight": 25,
 
                 "justification":
-                    "Limited relevant experience or project evidence."
+                    "Limited relevant project or experience evidence."
             }
 
-        project_texts = []
+        candidate_texts = []
 
         # =================================================
-        # PROJECT NORMALIZATION
+        # PROJECTS
         # =================================================
 
         for project in projects:
@@ -409,75 +459,33 @@ class ScoreAgent:
 
             if combined_text:
 
-                project_texts.append(
+                candidate_texts.append(
                     combined_text
                 )
 
         # =================================================
-        # EXPERIENCE NORMALIZATION
+        # EXPERIENCE
         # =================================================
 
-        if isinstance(
-            experience,
-            list
-        ):
+        for exp in experience:
 
-            for exp in experience:
+            normalized_exp = (
+                cls.normalize_text(
+                    exp
+                )
+            )
 
-                if isinstance(
-                    exp,
-                    dict
-                ):
+            if normalized_exp:
 
-                    combined_exp = " ".join([
-
-                        cls.normalize_text(
-                            exp.get(
-                                "job_title",
-                                ""
-                            )
-                        ),
-
-                        cls.normalize_text(
-                            exp.get(
-                                "company",
-                                ""
-                            )
-                        ),
-
-                        cls.normalize_text(
-                            exp.get(
-                                "description",
-                                ""
-                            )
-                        )
-                    ])
-
-                    if combined_exp.strip():
-
-                        project_texts.append(
-                            combined_exp
-                        )
-
-                else:
-
-                    normalized_exp = (
-                        cls.normalize_text(
-                            exp
-                        )
-                    )
-
-                    if normalized_exp:
-
-                        project_texts.append(
-                            normalized_exp
-                        )
+                candidate_texts.append(
+                    normalized_exp
+                )
 
         # =================================================
         # NO VALID EXPERIENCE
         # =================================================
 
-        if not project_texts:
+        if not candidate_texts:
 
             return {
 
@@ -499,13 +507,13 @@ class ScoreAgent:
 
         similarity_scores = []
 
-        for text in project_texts:
+        for text in candidate_texts:
 
             if not text.strip():
 
                 continue
 
-            project_embedding = (
+            text_embedding = (
                 cls.get_embedding(
                     text
                 )
@@ -515,7 +523,7 @@ class ScoreAgent:
 
                 jd_embedding,
 
-                project_embedding
+                text_embedding
             )
 
             similarity_scores.append(
@@ -523,7 +531,7 @@ class ScoreAgent:
             )
 
         # =================================================
-        # NO VALID SIMILARITIES
+        # NO VALID SCORES
         # =================================================
 
         if not similarity_scores:
@@ -535,12 +543,22 @@ class ScoreAgent:
                 "weight": 25,
 
                 "justification":
-                    "Unable to determine relevant experience alignment."
+                    "Unable to determine experience alignment."
             }
 
         # =================================================
-        # USE TOP PROJECTS
+        # DYNAMIC TOP-K
         # =================================================
+
+        top_k = min(
+
+            max(
+                len(similarity_scores) // 2,
+                2
+            ),
+
+            5
+        )
 
         top_scores = sorted(
 
@@ -548,18 +566,29 @@ class ScoreAgent:
 
             reverse=True
 
-        )[:3]
+        )[:top_k]
 
         average_similarity = float(
             np.mean(top_scores)
         )
 
         # =================================================
-        # CALIBRATION
+        # PROJECT BONUS
         # =================================================
 
+        project_bonus = min(
+
+            len(candidate_texts) * 0.15,
+
+            1.2
+        )
+
         calibrated_score = round(
-            average_similarity * 10,
+
+            (
+                average_similarity * 10
+            ) + project_bonus,
+
             1
         )
 
@@ -579,28 +608,28 @@ class ScoreAgent:
 
             justification = (
                 "Candidate demonstrates highly relevant "
-                "project and experience alignment with the target role."
+                "project and experience alignment with the role."
             )
 
         elif calibrated_score >= 6:
 
             justification = (
-                "Candidate shows moderately relevant "
-                "experience and project alignment."
+                "Candidate shows moderately strong "
+                "experience and project relevance."
             )
 
         elif calibrated_score >= 4:
 
             justification = (
                 "Candidate has partially relevant "
-                "experience but limited direct alignment."
+                "experience with some transferable skills."
             )
 
         else:
 
             justification = (
-                "Candidate experience shows weak "
-                "alignment with the target role."
+                "Candidate experience shows limited "
+                "alignment with the role requirements."
             )
 
         return {
@@ -704,6 +733,7 @@ Job Description:
 IMPORTANT:
 - Return ONLY valid JSON
 - No markdown
+- No hallucinations
 - Score must be between 0 and 10
 
 Required JSON:
@@ -775,6 +805,7 @@ Required JSON:
         )
 
         calibrated_score = round(
+
             min(
                 max(
                     raw_score * 0.9,
@@ -782,6 +813,7 @@ Required JSON:
                 ),
                 10
             ),
+
             1
         )
 
@@ -821,29 +853,67 @@ Required JSON:
             )
         )
 
-        word_count = len(
-            summary.split()
+        skills = candidate_profile.get(
+            "skills",
+            []
         )
 
-        if word_count >= 25:
+        projects = candidate_profile.get(
+            "projects",
+            []
+        )
 
-            score = 8.0
+        communication_signal = 0
+
+        # =================================================
+        # SUMMARY QUALITY
+        # =================================================
+
+        if len(summary.split()) >= 15:
+
+            communication_signal += 1
+
+        # =================================================
+        # SKILL STRUCTURE
+        # =================================================
+
+        if len(skills) >= 5:
+
+            communication_signal += 1
+
+        # =================================================
+        # PROJECT STRUCTURE
+        # =================================================
+
+        if len(projects) >= 2:
+
+            communication_signal += 1
+
+        # =================================================
+        # FINAL SCORE
+        # =================================================
+
+        if communication_signal == 3:
+
+            score = 8.5
 
             justification = (
-                "Resume content is clear and professionally structured."
+                "Resume is well-structured, clear, "
+                "and professionally communicated."
             )
 
-        elif word_count >= 10:
+        elif communication_signal == 2:
 
-            score = 6.5
+            score = 7.0
 
             justification = (
-                "Resume communication quality is acceptable."
+                "Resume communication quality is good "
+                "with adequate structure and clarity."
             )
 
         else:
 
-            score = 5.0
+            score = 5.5
 
             justification = (
                 "Resume communication could be improved."
