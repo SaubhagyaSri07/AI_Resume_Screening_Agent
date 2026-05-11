@@ -21,13 +21,114 @@ class MatchAgent:
     )
 
     # =====================================================
+    # INFERRED SKILL MAP
+    # RECRUITER-STYLE SKILL INFERENCE
+    # =====================================================
+
+    INFERRED_SKILL_MAP = {
+
+        # -------------------------------------------------
+        # RAG ECOSYSTEM
+        # -------------------------------------------------
+
+        "retrieval augmented generation": [
+
+            "semantic search",
+
+            "vector databases",
+
+            "vector retrieval",
+
+            "retrieval systems",
+
+            "knowledge retrieval"
+        ],
+
+        # -------------------------------------------------
+        # LANGCHAIN / AGENTS
+        # -------------------------------------------------
+
+        "langchain": [
+
+            "large language models",
+
+            "generative ai",
+
+            "ai agents"
+        ],
+
+        "langgraph": [
+
+            "agentic ai",
+
+            "workflow orchestration",
+
+            "multi-agent systems",
+
+            "ai agents"
+        ],
+
+        # -------------------------------------------------
+        # TRANSFORMERS
+        # -------------------------------------------------
+
+        "huggingface transformers": [
+
+            "natural language processing",
+
+            "transformer models",
+
+            "large language models"
+        ],
+
+        # -------------------------------------------------
+        # FASTAPI
+        # -------------------------------------------------
+
+        "fastapi": [
+
+            "rest apis",
+
+            "backend apis",
+
+            "api integration"
+        ],
+
+        # -------------------------------------------------
+        # PYTORCH
+        # -------------------------------------------------
+
+        "pytorch": [
+
+            "deep learning",
+
+            "machine learning"
+        ],
+
+        # -------------------------------------------------
+        # GEMINI API
+        # -------------------------------------------------
+
+        "gemini api": [
+
+            "large language models",
+
+            "generative ai"
+        ]
+    }
+
+    # =====================================================
     # SKILL NORMALIZATION
     # =====================================================
 
     @staticmethod
     def normalize_skill(skill):
 
-        normalized = skill.strip().lower()
+        normalized = (
+            skill
+            .strip()
+            .lower()
+        )
 
         skill_patterns = {
 
@@ -65,20 +166,23 @@ class MatchAgent:
             "large language models":
                 "large language models",
 
+            "generative ai":
+                "generative ai",
+
             "rag":
                 "retrieval augmented generation",
 
             "retrieval augmented generation":
                 "retrieval augmented generation",
 
-            "computer vision":
-                "computer vision",
+            "agentic ai":
+                "agentic ai",
 
-            "cv":
-                "computer vision",
+            "transformers":
+                "huggingface transformers",
 
             # -------------------------------------------------
-            # BACKEND / APIs
+            # APIs
             # -------------------------------------------------
 
             "api":
@@ -97,12 +201,6 @@ class MatchAgent:
             # DATABASES
             # -------------------------------------------------
 
-            "db":
-                "database",
-
-            "dbms":
-                "database management systems",
-
             "vector database":
                 "vector databases",
 
@@ -113,20 +211,24 @@ class MatchAgent:
             # FRONTEND
             # -------------------------------------------------
 
-            "js":
-                "javascript",
+            "react":
+                "react.js",
 
-            "ts":
-                "typescript"
+            "reactjs":
+                "react.js",
+
+            "react.js":
+                "react.js"
         }
 
         # -------------------------------------------------
-        # SUBSTRING-BASED NORMALIZATION
+        # SUBSTRING NORMALIZATION
         # -------------------------------------------------
 
-        for pattern, canonical_skill in (
-            skill_patterns.items()
-        ):
+        for (
+            pattern,
+            canonical_skill
+        ) in skill_patterns.items():
 
             if pattern in normalized:
 
@@ -145,35 +247,91 @@ class MatchAgent:
     ):
 
         return cls.model.encode(
+
             texts,
+
             convert_to_numpy=True
         )
 
     # =====================================================
-    # COMPUTE COSINE SIMILARITY
+    # COSINE SIMILARITY
     # =====================================================
 
     @staticmethod
     def compute_similarity(
+
         embedding1,
+
         embedding2
     ):
 
         similarity = cosine_similarity(
+
             [embedding1],
+
             [embedding2]
+
         )[0][0]
 
-        return float(similarity)
+        return float(
+            similarity
+        )
 
     # =====================================================
-    # MATCH JD SKILLS AGAINST CANDIDATE SKILLS
+    # INFERRED SKILL MATCHING
+    # =====================================================
+
+    @classmethod
+    def inferred_skill_match(
+
+        cls,
+
+        jd_skill,
+
+        candidate_skills
+    ):
+
+        jd_skill = (
+            jd_skill
+            .lower()
+            .strip()
+        )
+
+        candidate_skills_lower = [
+
+            skill.lower().strip()
+
+            for skill in candidate_skills
+        ]
+
+        # -------------------------------------------------
+        # CHECK INFERENCE MAP
+        # -------------------------------------------------
+
+        for (
+            candidate_skill,
+            inferred_skills
+        ) in cls.INFERRED_SKILL_MAP.items():
+
+            if candidate_skill in candidate_skills_lower:
+
+                if jd_skill in inferred_skills:
+
+                    return True
+
+        return False
+
+    # =====================================================
+    # MATCH SKILLS
     # =====================================================
 
     @classmethod
     def match_skills(
+
         cls,
+
         jd_skills,
+
         candidate_skills
     ):
 
@@ -186,7 +344,7 @@ class MatchAgent:
         detailed_matches = []
 
         # -------------------------------------------------
-        # SAFETY CHECKS
+        # SAFETY CHECK
         # -------------------------------------------------
 
         if not jd_skills or not candidate_skills:
@@ -216,16 +374,16 @@ class MatchAgent:
         ]
 
         # -------------------------------------------------
-        # GENERATE CANDIDATE EMBEDDINGS
+        # GENERATE EMBEDDINGS
         # -------------------------------------------------
 
         candidate_embeddings = cls.get_embeddings(
             normalized_candidate_skills
         )
 
-        # -------------------------------------------------
-        # MATCH EACH JD SKILL
-        # -------------------------------------------------
+        # =================================================
+        # PROCESS JD SKILLS
+        # =================================================
 
         for jd_skill in jd_skills:
 
@@ -233,42 +391,92 @@ class MatchAgent:
                 cls.normalize_skill(jd_skill)
             )
 
-            jd_embedding = cls.get_embeddings(
-                [normalized_jd_skill]
-            )[0]
-
-            best_similarity = 0.0
-
-            best_candidate_skill = None
-
             # ---------------------------------------------
-            # COMPARE AGAINST ALL CANDIDATE SKILLS
+            # DIRECT EXACT MATCH
             # ---------------------------------------------
 
-            for idx, candidate_embedding in enumerate(
-                candidate_embeddings
-            ):
+            if normalized_jd_skill in normalized_candidate_skills:
 
-                similarity = cls.compute_similarity(
-                    jd_embedding,
-                    candidate_embedding
+                best_similarity = 1.0
+
+                best_candidate_skill = (
+                    candidate_skills[
+                        normalized_candidate_skills.index(
+                            normalized_jd_skill
+                        )
+                    ]
                 )
 
-                if similarity > best_similarity:
+            else:
 
-                    best_similarity = similarity
+                # -----------------------------------------
+                # EMBEDDING MATCH
+                # -----------------------------------------
 
-                    best_candidate_skill = (
-                        candidate_skills[idx]
+                jd_embedding = cls.get_embeddings(
+                    [normalized_jd_skill]
+                )[0]
+
+                best_similarity = 0.0
+
+                best_candidate_skill = None
+
+                for idx, candidate_embedding in enumerate(
+                    candidate_embeddings
+                ):
+
+                    similarity = cls.compute_similarity(
+
+                        jd_embedding,
+
+                        candidate_embedding
                     )
+
+                    if similarity > best_similarity:
+
+                        best_similarity = similarity
+
+                        best_candidate_skill = (
+                            candidate_skills[idx]
+                        )
+
+                # -----------------------------------------
+                # INFERRED MATCH
+                # -----------------------------------------
+
+                inferred_match = (
+                    cls.inferred_skill_match(
+
+                        normalized_jd_skill,
+
+                        normalized_candidate_skills
+                    )
+                )
+
+                if inferred_match:
+
+                    best_similarity = max(
+                        best_similarity,
+                        0.82
+                    )
+
+                    if not best_candidate_skill:
+
+                        best_candidate_skill = (
+                            "Inferred Skill Match"
+                        )
+
+            # -------------------------------------------------
+            # STORE SCORE
+            # -------------------------------------------------
 
             similarity_scores.append(
                 best_similarity
             )
 
-            # ---------------------------------------------
-            # CONFIDENCE FILTERING
-            # ---------------------------------------------
+            # -------------------------------------------------
+            # DISPLAY FILTER
+            # -------------------------------------------------
 
             display_match = (
 
@@ -279,9 +487,9 @@ class MatchAgent:
                 else None
             )
 
-            # ---------------------------------------------
-            # STORE EXPLAINABLE MATCH INFO
-            # ---------------------------------------------
+            # -------------------------------------------------
+            # STORE EXPLAINABILITY
+            # -------------------------------------------------
 
             detailed_matches.append({
 
@@ -298,12 +506,27 @@ class MatchAgent:
                     round(
                         float(best_similarity),
                         4
+                    ),
+
+                "match_type":
+
+                    "direct"
+
+                    if best_similarity == 1.0
+
+                    else (
+
+                        "inferred"
+
+                        if best_similarity >= 0.82
+
+                        else "semantic"
                     )
             })
 
-            # ---------------------------------------------
-            # MATCH THRESHOLD
-            # ---------------------------------------------
+            # -------------------------------------------------
+            # FINAL MATCH THRESHOLD
+            # -------------------------------------------------
 
             if best_similarity >= 0.55:
 
@@ -317,16 +540,18 @@ class MatchAgent:
                     jd_skill
                 )
 
-        # -------------------------------------------------
-        # FINAL AGGREGATE SCORE
-        # -------------------------------------------------
+        # =================================================
+        # FINAL SCORE
+        # =================================================
 
         average_similarity = float(
             np.mean(similarity_scores)
         )
 
         semantic_match_score = round(
+
             average_similarity * 10,
+
             2
         )
 

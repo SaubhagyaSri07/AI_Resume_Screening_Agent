@@ -56,10 +56,60 @@ class Exporter:
 
         rows = []
 
+        # =================================================
+        # PROCESS CANDIDATES
+        # =================================================
+
         for idx, candidate in enumerate(
             results,
             start=1
         ):
+
+            # ---------------------------------------------
+            # AI VALUES
+            # ---------------------------------------------
+
+            ai_score = candidate.get(
+                "weighted_total_score",
+                0
+            )
+
+            ai_recommendation = candidate.get(
+                "recommendation",
+                "Unknown"
+            )
+
+            # ---------------------------------------------
+            # FINAL VALUES
+            # ---------------------------------------------
+
+            final_score = candidate.get(
+                "final_score",
+                ai_score
+            )
+
+            final_recommendation = candidate.get(
+                "final_recommendation",
+                ai_recommendation
+            )
+
+            # ---------------------------------------------
+            # HR OVERRIDE
+            # ---------------------------------------------
+
+            hr_override = candidate.get(
+                "hr_override",
+                {}
+            )
+
+            override_applied = hr_override.get(
+                "override_applied",
+                False
+            )
+
+            # ---------------------------------------------
+            # BASE ROW
+            # ---------------------------------------------
 
             row = {
 
@@ -67,24 +117,64 @@ class Exporter:
                     idx,
 
                 "Candidate Name":
-                    candidate[
-                        "candidate_name"
-                    ],
+                    candidate.get(
+                        "candidate_name",
+                        "Unknown"
+                    ),
 
-                "Overall Score":
-                    candidate[
-                        "weighted_total_score"
-                    ],
+                # -----------------------------------------
+                # AI DECISION
+                # -----------------------------------------
 
-                "Recommendation":
-                    candidate[
-                        "recommendation"
-                    ]
+                "AI Score":
+                    ai_score,
+
+                "AI Recommendation":
+                    ai_recommendation,
+
+                # -----------------------------------------
+                # FINAL DECISION
+                # -----------------------------------------
+
+                "Final Score":
+                    final_score,
+
+                "Final Recommendation":
+                    final_recommendation,
+
+                # -----------------------------------------
+                # OVERRIDE
+                # -----------------------------------------
+
+                "HR Override Applied":
+                    override_applied
             }
 
-            # -------------------------------------------------
-            # ADD DIMENSION SCORES
-            # -------------------------------------------------
+            # ---------------------------------------------
+            # ADD OVERRIDE DETAILS
+            # ONLY IF APPLIED
+            # ---------------------------------------------
+
+            if override_applied:
+
+                row.update({
+
+                    "Flagged For Review":
+                        hr_override.get(
+                            "flagged_for_review",
+                            False
+                        ),
+
+                    "HR Reason":
+                        hr_override.get(
+                            "reason",
+                            ""
+                        )
+                })
+
+            # =================================================
+            # DIMENSION SCORES
+            # =================================================
 
             dimensions = candidate.get(
                 "dimension_scores",
@@ -120,9 +210,17 @@ class Exporter:
                 row
             )
 
+        # =================================================
+        # DATAFRAME
+        # =================================================
+
         df = pd.DataFrame(
             rows
         )
+
+        # =================================================
+        # EXPORT CSV
+        # =================================================
 
         df.to_csv(
 
@@ -144,7 +242,7 @@ class Exporter:
     ):
 
         # -------------------------------------------------
-        # CREATE DOCUMENT
+        # DOCUMENT
         # -------------------------------------------------
 
         doc = SimpleDocTemplate(
@@ -186,6 +284,48 @@ class Exporter:
         ):
 
             # ---------------------------------------------
+            # AI VALUES
+            # ---------------------------------------------
+
+            ai_score = candidate.get(
+                "weighted_total_score",
+                0
+            )
+
+            ai_recommendation = candidate.get(
+                "recommendation",
+                "Unknown"
+            )
+
+            # ---------------------------------------------
+            # FINAL VALUES
+            # ---------------------------------------------
+
+            final_score = candidate.get(
+                "final_score",
+                ai_score
+            )
+
+            final_recommendation = candidate.get(
+                "final_recommendation",
+                ai_recommendation
+            )
+
+            # ---------------------------------------------
+            # HR OVERRIDE
+            # ---------------------------------------------
+
+            hr_override = candidate.get(
+                "hr_override",
+                {}
+            )
+
+            override_applied = hr_override.get(
+                "override_applied",
+                False
+            )
+
+            # ---------------------------------------------
             # HEADER
             # ---------------------------------------------
 
@@ -209,24 +349,59 @@ class Exporter:
                 Spacer(1, 12)
             )
 
+            # =================================================
+            # BASIC INFO
+            # =================================================
+
             # ---------------------------------------------
-            # BASIC INFORMATION
+            # WITH HR OVERRIDE
             # ---------------------------------------------
 
-            basic_info = f"""
+            if override_applied:
 
-            <b>Overall Score:</b>
-            {candidate['weighted_total_score']}/10
-            <br/><br/>
+                basic_info = f"""
 
-            <b>Recommendation:</b>
-            {candidate['recommendation']}
-            <br/><br/>
+                <b>Final Score:</b>
+                {final_score}/10
+                <br/><br/>
 
-            <b>Final Summary:</b>
-            {candidate['final_summary']}
-            <br/><br/>
-            """
+                <b>Final Recommendation:</b>
+                {final_recommendation}
+                <br/><br/>
+
+                <b>AI Original Score:</b>
+                {ai_score}/10
+                <br/><br/>
+
+                <b>AI Original Recommendation:</b>
+                {ai_recommendation}
+                <br/><br/>
+
+                <b>Final Summary:</b>
+                {candidate['final_summary']}
+                <br/><br/>
+                """
+
+            # ---------------------------------------------
+            # WITHOUT HR OVERRIDE
+            # ---------------------------------------------
+
+            else:
+
+                basic_info = f"""
+
+                <b>Final Score:</b>
+                {final_score}/10
+                <br/><br/>
+
+                <b>Final Recommendation:</b>
+                {final_recommendation}
+                <br/><br/>
+
+                <b>Final Summary:</b>
+                {candidate['final_summary']}
+                <br/><br/>
+                """
 
             elements.append(
 
@@ -242,9 +417,44 @@ class Exporter:
                 Spacer(1, 10)
             )
 
-            # ---------------------------------------------
+            # =================================================
+            # HR OVERRIDE SECTION
+            # =================================================
+
+            if override_applied:
+
+                override_text = f"""
+
+                <b>HR Override Applied:</b>
+                Yes
+                <br/><br/>
+
+                <b>Flagged For Manual Review:</b>
+                {hr_override.get('flagged_for_review')}
+                <br/><br/>
+
+                <b>HR Override Reason:</b>
+                {hr_override.get('reason')}
+                <br/><br/>
+                """
+
+                elements.append(
+
+                    Paragraph(
+
+                        override_text,
+
+                        styles["BodyText"]
+                    )
+                )
+
+                elements.append(
+                    Spacer(1, 10)
+                )
+
+            # =================================================
             # DIMENSION SCORES
-            # ---------------------------------------------
+            # =================================================
 
             dimensions = candidate.get(
                 "dimension_scores",
@@ -324,17 +534,23 @@ class Exporter:
                     Spacer(1, 8)
                 )
 
-            # ---------------------------------------------
-            # SEPARATOR
-            # ---------------------------------------------
+            # =================================================
+            # PAGE SEPARATOR
+            # =================================================
 
             elements.append(
                 Spacer(1, 20)
             )
 
-            elements.append(
-                PageBreak()
-            )
+            # ---------------------------------------------
+            # AVOID EXTRA BLANK PAGE
+            # ---------------------------------------------
+
+            if idx != len(results):
+
+                elements.append(
+                    PageBreak()
+                )
 
         # =================================================
         # BUILD PDF

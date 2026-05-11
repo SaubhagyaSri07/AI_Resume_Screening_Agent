@@ -70,6 +70,30 @@ st.set_page_config(
 )
 
 # =====================================================
+# SESSION STATE
+# =====================================================
+
+if "results" not in st.session_state:
+
+    st.session_state.results = None
+
+if "screening_completed" not in st.session_state:
+
+    st.session_state.screening_completed = False
+
+if "json_output_path" not in st.session_state:
+
+    st.session_state.json_output_path = ""
+
+if "csv_output_path" not in st.session_state:
+
+    st.session_state.csv_output_path = ""
+
+if "pdf_output_path" not in st.session_state:
+
+    st.session_state.pdf_output_path = ""
+
+# =====================================================
 # HEADER
 # =====================================================
 
@@ -287,6 +311,8 @@ run_button = st.button(
 
 if run_button:
 
+    st.session_state.screening_completed = False
+
     if not jd_text.strip():
 
         st.warning(
@@ -303,15 +329,11 @@ if run_button:
 
         try:
 
-            # =========================================
-            # RUN PIPELINE
-            # =========================================
-
             with st.spinner(
                 "Running AI screening pipeline..."
             ):
 
-                results = (
+                st.session_state.results = (
                     ScreeningPipeline.process_candidates(
 
                         jd_text=
@@ -322,510 +344,7 @@ if run_button:
                     )
                 )
 
-            # =========================================
-            # EXPORT REPORTS
-            # =========================================
-
-            json_output_path = os.path.join(
-                project_root,
-                "outputs",
-                "results.json"
-            )
-
-            csv_output_path = os.path.join(
-                project_root,
-                "outputs",
-                "results.csv"
-            )
-
-            pdf_output_path = os.path.join(
-                project_root,
-                "outputs",
-                "results.pdf"
-            )
-
-            Exporter.export_json(
-                results,
-                json_output_path
-            )
-
-            Exporter.export_csv(
-                results,
-                csv_output_path
-            )
-
-            Exporter.export_pdf(
-                results,
-                pdf_output_path
-            )
-
-            # =========================================
-            # SUCCESS
-            # =========================================
-
-            st.success(
-                "✅ Screening completed successfully."
-            )
-
-            st.divider()
-
-            st.header(
-                "🏆 Candidate Rankings"
-            )
-
-            hr_overrides = []
-
-            # =========================================
-            # DISPLAY CANDIDATES
-            # =========================================
-
-            for idx, candidate in enumerate(
-                results,
-                start=1
-            ):
-
-                candidate_name = candidate.get(
-                    "candidate_name",
-                    "Unknown Candidate"
-                )
-
-                recommendation = candidate.get(
-                    "recommendation",
-                    "Unknown"
-                )
-
-                total_score = candidate.get(
-                    "weighted_total_score",
-                    0
-                )
-
-                # =====================================
-                # RECOMMENDATION COLORS
-                # =====================================
-
-                if recommendation == "Strong Hire":
-
-                    badge = "🟢"
-
-                elif recommendation == "Hire":
-
-                    badge = "🔵"
-
-                elif recommendation == "Consider":
-
-                    badge = "🟠"
-
-                else:
-
-                    badge = "🔴"
-
-                expander_title = (
-
-                    f"{badge} "
-
-                    f"{idx}. "
-
-                    f"{candidate_name} "
-
-                    f"— "
-
-                    f"{recommendation} "
-
-                    f"({total_score}/10)"
-                )
-
-                with st.expander(
-                    expander_title
-                ):
-
-                    # ---------------------------------
-                    # SUMMARY
-                    # ---------------------------------
-
-                    st.subheader(
-                        "🧠 Final Summary"
-                    )
-
-                    st.write(
-                        candidate.get(
-                            "final_summary",
-                            "No summary available."
-                        )
-                    )
-
-                    st.divider()
-
-                    # ---------------------------------
-                    # METRICS
-                    # ---------------------------------
-
-                    metric_col1, metric_col2 = (
-                        st.columns(2)
-                    )
-
-                    with metric_col1:
-
-                        st.metric(
-
-                            label=
-                                "Overall Score",
-
-                            value=
-                                f"{total_score}/10"
-                        )
-
-                    with metric_col2:
-
-                        st.metric(
-
-                            label=
-                                "Recommendation",
-
-                            value=
-                                recommendation
-                        )
-
-                    st.divider()
-
-                    # ---------------------------------
-                    # SKILL MATCHING
-                    # ---------------------------------
-
-                    st.subheader(
-                        "🛠 Skill Matching"
-                    )
-
-                    match_result = candidate.get(
-                        "match_result",
-                        {}
-                    )
-
-                    matched_skills = (
-                        match_result.get(
-                            "matched_skills",
-                            []
-                        )
-                    )
-
-                    missing_skills = (
-                        match_result.get(
-                            "missing_skills",
-                            []
-                        )
-                    )
-
-                    if matched_skills:
-
-                        st.success(
-                            "Matched Skills:\n\n"
-                            + ", ".join(
-                                matched_skills
-                            )
-                        )
-
-                    if missing_skills:
-
-                        st.error(
-                            "Missing Skills:\n\n"
-                            + ", ".join(
-                                missing_skills
-                            )
-                        )
-
-                    st.divider()
-
-                    # ---------------------------------
-                    # DIMENSION SCORES
-                    # ---------------------------------
-
-                    st.subheader(
-                        "📊 Dimension Scores"
-                    )
-
-                    dimension_scores = (
-                        candidate.get(
-                            "dimension_scores",
-                            {}
-                        )
-                    )
-
-                    for (
-                        dimension,
-                        details
-                    ) in dimension_scores.items():
-
-                        pretty_name = (
-                            dimension
-                            .replace("_", " ")
-                            .title()
-                        )
-
-                        score = details.get(
-                            "score",
-                            0
-                        )
-
-                        weight = details.get(
-                            "weight",
-                            0
-                        )
-
-                        justification = details.get(
-                            "justification",
-                            ""
-                        )
-
-                        st.markdown(
-                            f"### {pretty_name}"
-                        )
-
-                        st.progress(
-                            score / 10
-                        )
-
-                        st.write(
-                            f"Score: {score}/10"
-                        )
-
-                        st.write(
-                            f"Weight: {weight}%"
-                        )
-
-                        st.info(
-                            justification
-                        )
-
-                    st.divider()
-
-                    # ---------------------------------
-                    # HUMAN-IN-THE-LOOP PANEL
-                    # ---------------------------------
-
-                    st.subheader(
-                        "👨‍💼 HR Override Panel"
-                    )
-
-                    override_enabled = st.checkbox(
-
-                        "Enable HR Override",
-
-                        key=f"override_{idx}"
-                    )
-
-                    if override_enabled:
-
-                        override_score = st.slider(
-
-                            "Override Score",
-
-                            min_value=0.0,
-
-                            max_value=10.0,
-
-                            value=float(
-                                total_score
-                            ),
-
-                            step=0.1,
-
-                            key=f"score_{idx}"
-                        )
-
-                        override_recommendation = (
-                            st.selectbox(
-
-                                "Override Recommendation",
-
-                                [
-                                    "Strong Hire",
-                                    "Hire",
-                                    "Consider",
-                                    "Reject"
-                                ],
-
-                                key=
-                                    f"recommendation_{idx}"
-                            )
-                        )
-
-                        hr_reason = st.text_area(
-
-                            "HR Override Reason",
-
-                            placeholder=
-                            """
-Explain why the score or
-recommendation was overridden...
-""",
-
-                            key=f"reason_{idx}"
-                        )
-
-                        flagged = st.checkbox(
-
-                            "Flag Candidate for Manual Review",
-
-                            key=f"flag_{idx}"
-                        )
-
-                        override_data = {
-
-                            "candidate_name":
-                                candidate_name,
-
-                            "original_score":
-                                total_score,
-
-                            "override_score":
-                                override_score,
-
-                            "original_recommendation":
-                                recommendation,
-
-                            "override_recommendation":
-                                override_recommendation,
-
-                            "reason":
-                                hr_reason,
-
-                            "flagged":
-                                flagged
-                        }
-
-                        hr_overrides.append(
-                            override_data
-                        )
-
-                        st.success(
-                            "HR override applied."
-                        )
-
-            # =========================================
-            # SAVE HR OVERRIDES
-            # =========================================
-
-            if hr_overrides:
-
-                override_path = os.path.join(
-
-                    project_root,
-
-                    "outputs",
-
-                    "hr_overrides.json"
-                )
-
-                with open(
-                    override_path,
-                    "w",
-                    encoding="utf-8"
-                ) as file:
-
-                    json.dump(
-
-                        hr_overrides,
-
-                        file,
-
-                        indent=4
-                    )
-
-            # =========================================
-            # DOWNLOAD SECTION
-            # =========================================
-
-            st.divider()
-
-            st.header(
-                "📥 Export Reports"
-            )
-
-            col1, col2, col3 = st.columns(3)
-
-            # -----------------------------------------
-            # JSON
-            # -----------------------------------------
-
-            with col1:
-
-                with open(
-                    json_output_path,
-                    "rb"
-                ) as file:
-
-                    st.download_button(
-
-                        label=
-                            "Download JSON",
-
-                        data=file,
-
-                        file_name=
-                            "results.json",
-
-                        mime=
-                            "application/json",
-
-                        use_container_width=True
-                    )
-
-            # -----------------------------------------
-            # CSV
-            # -----------------------------------------
-
-            with col2:
-
-                with open(
-                    csv_output_path,
-                    "rb"
-                ) as file:
-
-                    st.download_button(
-
-                        label=
-                            "Download CSV",
-
-                        data=file,
-
-                        file_name=
-                            "results.csv",
-
-                        mime=
-                            "text/csv",
-
-                        use_container_width=True
-                    )
-
-            # -----------------------------------------
-            # PDF
-            # -----------------------------------------
-
-            with col3:
-
-                with open(
-                    pdf_output_path,
-                    "rb"
-                ) as file:
-
-                    st.download_button(
-
-                        label=
-                            "Download PDF Report",
-
-                        data=file,
-
-                        file_name=
-                            "results.pdf",
-
-                        mime=
-                            "application/pdf",
-
-                        use_container_width=True
-                    )
-
-        # =============================================
-        # ERROR HANDLING
-        # =============================================
+            st.session_state.screening_completed = True
 
         except Exception as e:
 
@@ -834,3 +353,686 @@ recommendation was overridden...
             )
 
             st.exception(e)
+
+# =====================================================
+# DISPLAY RESULTS
+# =====================================================
+
+if st.session_state.screening_completed:
+
+    results = st.session_state.results
+
+    st.success(
+        "✅ Screening completed successfully."
+    )
+
+    st.divider()
+
+    st.header(
+        "🏆 Candidate Rankings"
+    )
+
+    # =================================================
+    # DISPLAY CANDIDATES
+    # =================================================
+
+    for idx, candidate in enumerate(
+        results,
+        start=1
+    ):
+
+        # =============================================
+        # AI VALUES
+        # =============================================
+
+        ai_score = candidate.get(
+            "weighted_total_score",
+            0
+        )
+
+        ai_recommendation = candidate.get(
+            "recommendation",
+            "Unknown"
+        )
+
+        # =============================================
+        # FINAL VALUES
+        # =============================================
+
+        final_score = candidate.get(
+            "final_score",
+            ai_score
+        )
+
+        final_recommendation = candidate.get(
+            "final_recommendation",
+            ai_recommendation
+        )
+
+        candidate_name = candidate.get(
+            "candidate_name",
+            "Unknown Candidate"
+        )
+
+        # =============================================
+        # BADGES
+        # =============================================
+
+        if final_recommendation == "Strong Hire":
+
+            badge = "🟢"
+
+        elif final_recommendation == "Hire":
+
+            badge = "🔵"
+
+        elif final_recommendation == "Consider":
+
+            badge = "🟠"
+
+        else:
+
+            badge = "🔴"
+
+        expander_title = (
+
+            f"{badge} "
+
+            f"{idx}. "
+
+            f"{candidate_name} "
+
+            f"— "
+
+            f"{final_recommendation} "
+
+            f"({final_score}/10)"
+        )
+
+        # =============================================
+        # EXPANDER STATE
+        # =============================================
+
+        expander_key = (
+            f"expander_{idx}"
+        )
+
+        if expander_key not in st.session_state:
+
+            st.session_state[
+                expander_key
+            ] = (idx == 1)
+
+        # =============================================
+        # CANDIDATE EXPANDER
+        # =============================================
+
+        with st.expander(
+
+            expander_title,
+
+            expanded=st.session_state[
+                expander_key
+            ]
+        ):
+
+            # =========================================
+            # SUMMARY
+            # =========================================
+
+            st.subheader(
+                "🧠 Final Summary"
+            )
+
+            st.write(
+                candidate.get(
+                    "final_summary",
+                    "No summary available."
+                )
+            )
+
+            st.divider()
+
+            # =========================================
+            # METRICS
+            # =========================================
+
+            metric_col1, metric_col2 = (
+                st.columns(2)
+            )
+
+            with metric_col1:
+
+                st.metric(
+
+                    label=
+                        "Final Score",
+
+                    value=
+                        f"{final_score}/10"
+                )
+
+            with metric_col2:
+
+                st.metric(
+
+                    label=
+                        "Final Recommendation",
+
+                    value=
+                        final_recommendation
+                )
+
+            # =========================================
+            # ORIGINAL AI DECISION
+            # ONLY IF OVERRIDDEN
+            # =========================================
+
+            if candidate.get(
+                "hr_override",
+                {}
+            ).get(
+                "override_applied",
+                False
+            ):
+
+                st.warning(
+                    f"""
+AI originally recommended:
+
+{ai_recommendation}
+({ai_score}/10)
+"""
+                )
+
+            st.divider()
+
+            # =========================================
+            # SKILL MATCHING
+            # =========================================
+
+            st.subheader(
+                "🛠 Skill Matching"
+            )
+
+            match_result = candidate.get(
+                "match_result",
+                {}
+            )
+
+            matched_skills = (
+                match_result.get(
+                    "matched_skills",
+                    []
+                )
+            )
+
+            missing_skills = (
+                match_result.get(
+                    "missing_skills",
+                    []
+                )
+            )
+
+            if matched_skills:
+
+                st.success(
+                    "Matched Skills:\n\n"
+                    + ", ".join(
+                        matched_skills
+                    )
+                )
+
+            if missing_skills:
+
+                st.error(
+                    "Missing Skills:\n\n"
+                    + ", ".join(
+                        missing_skills
+                    )
+                )
+
+            st.divider()
+
+            # =========================================
+            # DIMENSION SCORES
+            # =========================================
+
+            st.subheader(
+                "📊 Dimension Scores"
+            )
+
+            dimension_scores = (
+                candidate.get(
+                    "dimension_scores",
+                    {}
+                )
+            )
+
+            for (
+                dimension,
+                details
+            ) in dimension_scores.items():
+
+                pretty_name = (
+                    dimension
+                    .replace("_", " ")
+                    .title()
+                )
+
+                score = details.get(
+                    "score",
+                    0
+                )
+
+                weight = details.get(
+                    "weight",
+                    0
+                )
+
+                justification = details.get(
+                    "justification",
+                    ""
+                )
+
+                st.markdown(
+                    f"### {pretty_name}"
+                )
+
+                st.progress(
+                    score / 10
+                )
+
+                st.write(
+                    f"Score: {score}/10"
+                )
+
+                st.write(
+                    f"Weight: {weight}%"
+                )
+
+                st.info(
+                    justification
+                )
+
+            st.divider()
+
+            # =========================================
+            # HR OVERRIDE PANEL
+            # =========================================
+
+            st.subheader(
+                "👨‍💼 HR Override Panel"
+            )
+
+            override_enabled = st.checkbox(
+
+                "Enable HR Override",
+
+                value=candidate.get(
+                    "hr_override",
+                    {}
+                ).get(
+                    "override_applied",
+                    False
+                ),
+
+                key=f"override_{idx}"
+            )
+
+            # =========================================
+            # OVERRIDE ENABLED
+            # =========================================
+
+            if override_enabled:
+
+                st.session_state[
+                    expander_key
+                ] = True
+
+                override_score = st.slider(
+
+                    "Override Final Score",
+
+                    min_value=0.0,
+
+                    max_value=10.0,
+
+                    value=float(
+                        final_score
+                    ),
+
+                    step=0.1,
+
+                    key=f"score_{idx}"
+                )
+
+                override_recommendation = (
+                    st.selectbox(
+
+                        "Override Recommendation",
+
+                        [
+                            "Strong Hire",
+                            "Hire",
+                            "Consider",
+                            "Reject"
+                        ],
+
+                        index=[
+                            "Strong Hire",
+                            "Hire",
+                            "Consider",
+                            "Reject"
+                        ].index(
+                            final_recommendation
+                        ),
+
+                        key=
+                            f"recommendation_{idx}"
+                    )
+                )
+
+                hr_reason = st.text_area(
+
+                    "HR Override Reason",
+
+                    value=candidate.get(
+                        "hr_override",
+                        {}
+                    ).get(
+                        "reason",
+                        ""
+                    ),
+
+                    placeholder=
+                    """
+Explain why the score or
+recommendation was overridden...
+""",
+
+                    key=f"reason_{idx}"
+                )
+
+                flagged = st.checkbox(
+
+                    "Flag Candidate For Manual Review",
+
+                    value=candidate.get(
+                        "hr_override",
+                        {}
+                    ).get(
+                        "flagged_for_review",
+                        False
+                    ),
+
+                    key=f"flag_{idx}"
+                )
+
+                # =====================================
+                # STORE OVERRIDE
+                # =====================================
+
+                candidate["hr_override"] = {
+
+                    "override_applied":
+                        True,
+
+                    "original_score":
+                        ai_score,
+
+                    "final_score":
+                        override_score,
+
+                    "original_recommendation":
+                        ai_recommendation,
+
+                    "final_recommendation":
+                        override_recommendation,
+
+                    "reason":
+                        hr_reason,
+
+                    "flagged_for_review":
+                        flagged
+                }
+
+                # =====================================
+                # FINAL VALUES
+                # =====================================
+
+                candidate[
+                    "final_score"
+                ] = override_score
+
+                candidate[
+                    "final_recommendation"
+                ] = override_recommendation
+
+                st.success(
+                    "HR override applied."
+                )
+
+                if flagged:
+
+                    st.error(
+                        "🚩 Candidate flagged for manual review."
+                    )
+
+            # =========================================
+            # REMOVE OVERRIDE
+            # =========================================
+
+            else:
+
+                if "hr_override" in candidate:
+
+                    del candidate[
+                        "hr_override"
+                    ]
+
+                if "final_score" in candidate:
+
+                    del candidate[
+                        "final_score"
+                    ]
+
+                if "final_recommendation" in candidate:
+
+                    del candidate[
+                        "final_recommendation"
+                    ]
+
+    # =================================================
+    # SAVE OVERRIDES
+    # =================================================
+
+    override_path = os.path.join(
+
+        project_root,
+
+        "outputs",
+
+        "hr_overrides.json"
+    )
+
+    override_data = []
+
+    for candidate in results:
+
+        if "hr_override" in candidate:
+
+            override_data.append({
+
+                "candidate_name":
+                    candidate[
+                        "candidate_name"
+                    ],
+
+                **candidate[
+                    "hr_override"
+                ]
+            })
+
+    with open(
+        override_path,
+        "w",
+        encoding="utf-8"
+    ) as file:
+
+        json.dump(
+
+            override_data,
+
+            file,
+
+            indent=4
+        )
+
+    # =================================================
+    # EXPORT FINAL RESULTS
+    # =================================================
+
+    json_output_path = os.path.join(
+        project_root,
+        "outputs",
+        "results.json"
+    )
+
+    csv_output_path = os.path.join(
+        project_root,
+        "outputs",
+        "results.csv"
+    )
+
+    pdf_output_path = os.path.join(
+        project_root,
+        "outputs",
+        "results.pdf"
+    )
+
+    Exporter.export_json(
+        results,
+        json_output_path
+    )
+
+    Exporter.export_csv(
+        results,
+        csv_output_path
+    )
+
+    Exporter.export_pdf(
+        results,
+        pdf_output_path
+    )
+
+    st.session_state.json_output_path = (
+        json_output_path
+    )
+
+    st.session_state.csv_output_path = (
+        csv_output_path
+    )
+
+    st.session_state.pdf_output_path = (
+        pdf_output_path
+    )
+
+    # =================================================
+    # DOWNLOAD SECTION
+    # =================================================
+
+    st.divider()
+
+    st.header(
+        "📥 Export Reports"
+    )
+
+    col1, col2, col3 = st.columns(3)
+
+    # =============================================
+    # JSON
+    # =============================================
+
+    with col1:
+
+        with open(
+            st.session_state.json_output_path,
+            "rb"
+        ) as file:
+
+            st.download_button(
+
+                label=
+                    "Download JSON",
+
+                data=file,
+
+                file_name=
+                    "results.json",
+
+                mime=
+                    "application/json",
+
+                use_container_width=True,
+
+                on_click="ignore"
+            )
+
+    # =============================================
+    # CSV
+    # =============================================
+
+    with col2:
+
+        with open(
+            st.session_state.csv_output_path,
+            "rb"
+        ) as file:
+
+            st.download_button(
+
+                label=
+                    "Download CSV",
+
+                data=file,
+
+                file_name=
+                    "results.csv",
+
+                mime=
+                    "text/csv",
+
+                use_container_width=True,
+
+                on_click="ignore"
+            )
+
+    # =============================================
+    # PDF
+    # =============================================
+
+    with col3:
+
+        with open(
+            st.session_state.pdf_output_path,
+            "rb"
+        ) as file:
+
+            st.download_button(
+
+                label=
+                    "Download PDF Report",
+
+                data=file,
+
+                file_name=
+                    "results.pdf",
+
+                mime=
+                    "application/pdf",
+
+                use_container_width=True,
+
+                on_click="ignore"
+            )
